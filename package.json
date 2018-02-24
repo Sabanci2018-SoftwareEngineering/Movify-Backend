@@ -1,0 +1,18 @@
+{
+  "name": "backend",
+  "version": "0.0.1",
+  "description": "Backend server for Movify",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://orancan@ipost.sabanciuniv.edu:7990/scm/sprcour8/backend.git"
+  },
+  "author": "Kerem Kahraman, Oran Can Ören",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.2"
+  }
+}
