@@ -13,6 +13,7 @@
   "author": "Kerem Kahraman, Oran Can Ören",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.16.2"
+    "express": "^4.16.2",
+    "omdb-api-pt": "^2.0.1"
   }
 }
