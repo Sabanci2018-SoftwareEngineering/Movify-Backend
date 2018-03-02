@@ -4,7 +4,8 @@
   "description": "Backend server for Movify",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha --timeout 10000",
+    "start": "node server.js"
   },
   "repository": {
     "type": "git",
@@ -14,6 +15,12 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.16.2",
+    "moviedb": "^0.2.10",
     "omdb-api-pt": "^2.0.1"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-http": "^2.0.1",
+    "mocha": "^2.4.5"
   }
 }

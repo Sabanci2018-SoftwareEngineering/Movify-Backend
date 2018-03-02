@@ -23,3 +23,5 @@ app.use('/', require('./app/routes/api.js')); // use routes
 app.listen(app.get('PORT'), () => {
     console.log('Listening on port ' + app.get('PORT'));
 });
+
+module.exports = app; // required for testing

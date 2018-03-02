@@ -3,7 +3,7 @@ var omdbApi = require('omdb-api-pt')
 
 var omdb = new omdbApi({
     apiKey: 'abcdc758'
-})
+});
 
 router.use('*', (req, res, next) => {
     console.log('[' + req.method + '] ' + req.ip + ' ' + req.path)
@@ -13,16 +13,9 @@ router.use('*', (req, res, next) => {
     next();
 });
 
-router.get('/', (req, res) => {
-    res.json({
-        DEBUG: "/"
-    })
-});
-
 router.post('/search', (req, res) => {
-    // Expects the request body to contain a "searchTarget" field
     omdb.bySearch({
-        search: req.body.searchTarget
+        search: req.body.keyword
     })
     .then(results => res.json({
         success: true,
@@ -34,7 +27,7 @@ router.post('/search', (req, res) => {
     }));
 });
 
-router.get('/movie/:targetID', (req, res) => {
+router.get('/title/:targetID', (req, res) => {
     // retreive the movie data and send response
     omdb.byId({
         imdb: req.params.targetID
