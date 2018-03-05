@@ -1,45 +1,42 @@
 var router = require('express').Router()
-var omdbApi = require('omdb-api-pt')
+var TMDB = require('../models/movie');
 
-var omdb = new omdbApi({
-    apiKey: 'abcdc758'
-});
+var tmdb = new TMDB;
 
-router.use('*', (req, res, next) => {
-    console.log('[' + req.method + '] ' + req.ip + ' ' + req.path)
-    console.log('request parameters: ', req.params)
-    console.log('request body: ', JSON.stringify(req.body) + '\n');
-    res.setHeader('Content-Type', 'application/json');
-    next();
-});
+if (process.env.NODE_ENV != 'test') {
+    router.use('*', (req, res, next) => {
+    
+        console.log('[' + req.method + '] ' + req.ip + ' ' + req.path)
+        console.log('request parameters: ', req.params)
+        console.log('request body: ', JSON.stringify(req.body) + '\n');
+        res.setHeader('Content-Type', 'application/json');
+        next();
+    });
+}
+
+function createResponse(err, res) {
+    if (err) {
+        return {
+            success: false,
+            error: err
+        };
+    }
+    return {
+        success: true,
+        results: res
+    };
+}
 
 router.post('/search', (req, res) => {
-    omdb.bySearch({
-        search: req.body.keyword
+    tmdb.searchMovie(req.body.keyword, (err, results) => {
+        res.json(createResponse(err, results))
     })
-    .then(results => res.json({
-        success: true,
-        results: results
-    }))
-    .catch(err => res.json({
-        success: false,
-        error: err
-    }));
 });
 
 router.get('/title/:targetID', (req, res) => {
-    // retreive the movie data and send response
-    omdb.byId({
-        imdb: req.params.targetID
+    tmdb.movieInfo(req.params.targetID, (err, results) => {
+        res.json(createResponse(err, results));
     })
-    .then(results => res.json({
-        success: true,
-        results: results
-    }))
-    .catch(err => res.json({
-        success: false,
-        error: err
-    }));
 });
 
 router.all('*', (req, res) => {
