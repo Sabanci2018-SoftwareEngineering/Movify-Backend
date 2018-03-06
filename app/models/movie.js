@@ -1,7 +1,5 @@
-const MovieDB = require('moviedb')('52d83a93b06d28b814fd3ab6f12bcc2a');
-
 class TMDB {
-    constructor() {
+    constructor(MovieDB) {
         this.tmdb = MovieDB;
     }
 

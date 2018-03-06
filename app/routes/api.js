@@ -1,7 +1,9 @@
 var router = require('express').Router()
+const MovieDB = require('moviedb')('52d83a93b06d28b814fd3ab6f12bcc2a');
+
 var TMDB = require('../models/movie');
 
-var tmdb = new TMDB;
+var tmdb = new TMDB(MovieDB);
 
 if (process.env.NODE_ENV != 'test') {
     router.use('*', (req, res, next) => {

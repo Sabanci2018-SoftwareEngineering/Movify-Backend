@@ -1,9 +1,10 @@
 process.env.NODE_ENV = 'test';
 
 var TMDB = require('../app/models/movie.js');
+var mockMovieDB = require('../app/models/mockMovie.js');
 var expect = require('chai').expect;
 
-var tmdb = new TMDB();
+var tmdb = new TMDB(mockMovieDB);
 
 describe('Search for keyword "Inception"', (done) => {
     it('it should retrieve search results on keyword "Inception"', (done) => {
@@ -14,7 +15,7 @@ describe('Search for keyword "Inception"', (done) => {
             // check header keys
             headerProperties = ['page', 'total_results', 'total_pages', 'results'];
             for (var i = 0; i < headerProperties.length; i++) {
-                expect(res).to.have.property(headerProperties[i]);
+                expect(res.results).to.have.property(headerProperties[i]);
             }
 
             // check result keys
@@ -23,7 +24,7 @@ describe('Search for keyword "Inception"', (done) => {
                 'adult', 'overview']
             for (var i = 0; i < res.results.length; i++) {
                 for (var j = 0; j < resultProperties.length; j++) {
-                    expect(res.results[i]).to.have.property(resultProperties[j]);
+                    expect(res.results.results[i]).to.have.property(resultProperties[j]);
                 }
             }
 
@@ -45,7 +46,7 @@ describe('Retrieve data for movie with ID 27205', (done) => {
                 'release_date', 'revenue', 'runtime', 'spoken_languages', 'status', 'tagline', 'title',
                 'video', 'vote_average', 'vote_count'];
             for (var i = 0; i < properties.length; i++) {
-                expect(res).to.have.property(properties[i]);
+                expect(res.results).to.have.property(properties[i]);
             }
 
             done();
