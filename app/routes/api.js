@@ -38,7 +38,19 @@ router.post('/search', (req, res) => {
 router.get('/title/:targetID', (req, res) => {
     tmdb.movieInfo(req.params.targetID, (err, results) => {
         res.json(createResponse(err, results));
-    })
+    });
+});
+
+router.get('/title/:targetID/trailer', (req, res) => {
+    tmdb.movieTrailer(req.params.targetID, (err, results) => {
+        res.json(createResponse(err, results.youtube));
+    });
+});
+
+router.get('/title/:targetID/credits', (req, res) => {
+    tmdb.movieCredits(req.params.targetID, (err, results) => {
+        res.json(createResponse(err, results));
+    });
 });
 
 router.all('*', (req, res) => {
