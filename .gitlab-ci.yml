@@ -1,9 +1,8 @@
 # Official framework image. Look for the different tagged releases at:
 # https://hub.docker.com/r/library/node/tags/
-image: node:9
-
-before_script:
-  - npm install
+stages:
+  - test
+  - publish
 
 # This folder is cached between builds
 # http://docs.gitlab.com/ce/ci/yaml/README.html#cache
@@ -12,18 +11,23 @@ cache:
     - node_modules/
 
 test:
+  image: node:9
+  stage: test
   script:
+    - npm install
     - npm run lint
     - npm run test
 
 publish:
-  image: docker:latest
-  stage: build
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
-    - docker build -t registry.gitlab.com/bymafmaf/movifybackend .
-    - docker push registry.gitlab.com/bymafmaf/movifybackend
-  only:
-    - production
-  tags:
-    - docker
+ image: docker:latest
+ services:
+ - docker:dind
+ stage: publish
+ variables:
+   DOCKER_DRIVER: "overlay"
+ script:
+   - "docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com"
+   - "docker build -t registry.gitlab.com/bymafmaf/movifybackend ."
+   - "docker push registry.gitlab.com/bymafmaf/movifybackend:latest"
+ only:
+   - "master"
