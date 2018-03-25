@@ -4,7 +4,9 @@
   "description": "Backend server for Movify",
   "main": "server.js",
   "scripts": {
+    "build": "npm run lint && npm run test",
     "test": "mocha --timeout 10000",
+    "lint": "jshint **.js",
     "start": "node server.js"
   },
   "repository": {
@@ -22,6 +24,7 @@
   "devDependencies": {
     "chai": "^3.5.0",
     "chai-http": "^2.0.1",
+    "jshint": "^2.9.5",
     "mocha": "^2.4.5"
   }
 }

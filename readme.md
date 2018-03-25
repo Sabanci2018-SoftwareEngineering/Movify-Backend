@@ -11,3 +11,6 @@ docker run -d \
   	--restart=always \
 	--publish 8080:3000 \
 	 movify-backend
+
+Mirror Gitlab repository for CI/CD:
+https://gitlab.com/bymafmaf/MovifyBackend
