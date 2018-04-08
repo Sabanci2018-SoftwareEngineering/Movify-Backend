@@ -16,6 +16,7 @@
   "author": "Kerem Kahraman, Oran Can Ören",
   "license": "MIT",
   "dependencies": {
+    "bcrypt": "^1.0.3",
     "express": "^4.16.2",
     "moviedb": "^0.2.10",
     "npm": "^5.7.1",
