@@ -7,6 +7,9 @@
 // MARK: module imports
 var express = require('express');
 var bodyParser = require('body-parser');
+var cookieParser = require('cookie-parser');
+var session = require('express-session');
+var passport = require('passport');
 
 // MARK: Express app instantaniation and configuration
 var app = express();
@@ -16,6 +19,16 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
 app.set('PORT', process.env.PORT || 3000); // set the port
+
+
+app.use(cookieParser());
+app.use(bodyParser());
+app.use(session({ secret: 'derpy' }));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+require('./app/config/passport.js')(passport);
 
 app.use('/', require('./app/routes/api.js')); // use routes
 
