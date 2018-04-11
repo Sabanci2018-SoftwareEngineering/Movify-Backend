@@ -7,4 +7,7 @@ var db = new Sequelize( 'movify', '', '',
 		}
 );
 
+db.sync({ force: true });
+db.query('PRAGMA foreign_keys = OFF;');
+
 module.exports = db;

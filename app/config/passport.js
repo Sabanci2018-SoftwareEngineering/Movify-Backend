@@ -1,8 +1,8 @@
 var LocalStrategy   = require('passport-local').Strategy;
 
 var Sequelize = require('sequelize')
-var User = require('../models/user.js');
-var User_Activation = require('../models/user_activation.js')
+var User = require('../models/DB/user.js');
+var User_Activation = require('../models/DB/user_activation.js')
 var rn = require('random-number');
 var transporter = require('./transporter.js');
 var bcrypt = require('bcrypt');
@@ -50,7 +50,7 @@ module.exports = (passport) => {
 							console.error(err);
 						}
 						else {
-							User.build({ username: username, email: email, password: password, name: username }).save()
+							User.build({ username: username, email: email, password: hash, name: username }).save()
 							.then((user) => { done(null, user); })
 							.catch((err) => { done(null, false, 'Username already exists!'); })
 						}
@@ -93,26 +93,25 @@ module.exports = (passport) => {
 			passReqToCallback : true
 		},
 		(req, key, password, done) => {
-			bcrypt.hash(password, 12, (err, hash) => {
-				if (err) {
-					done(err);
-				}
-				else {
-					User.findOne({where: { [Sequelize.Op.or]: [ { username: key }, { email: key } ], password: hash }})
-					.then((user) => { 
-						if (!user) {
-							done(null, false, 'Invalid combination!');
-						}
-						else if (!user.isActive) {
-							done(null, false, 'Account not active!');
-						}
-						else {
-							done(null, user);
-						}
-					})
-					.catch((err) => { done(null, false, err); })
-				}			
-			});
+			User.findOne({where: { [Sequelize.Op.or]: [ { username: key }, { email: key } ] }})
+				.then((user) => {
+					if (!user) {
+						done(null, false, 'Invalid combination!');
+					} else {
+						bcrypt.compare(password, user.password, function(err, res) {
+							if (res) {
+								if (!user.isActive) {
+									done(null, false, 'Account not active!');
+								} else {
+									done(null, user);
+								}
+							} else {
+								done(null, false, 'Invalid combination!');
+							}
+						});
+					}
+				})
+				.catch((err) => { done(null, false, err); });
 		})
-	)
+	);
 };
