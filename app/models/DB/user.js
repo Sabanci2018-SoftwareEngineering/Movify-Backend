@@ -20,7 +20,11 @@ var User = db.define('user', {
 		allowNull: false,
 		defaultValue: '0000000001'
 	},
-	name: {
+	firstName: {
+		type: Sequelize.STRING,
+		allowNull: false
+	},
+	lastName: {
 		type: Sequelize.STRING,
 		allowNull: false
 	},

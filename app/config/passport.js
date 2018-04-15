@@ -30,14 +30,27 @@ module.exports = (passport) => {
 			passReqToCallback : true
 		},
 		function(req, username, password, done) {
-			var email = req.body.email;
+			const email = req.body.email;
+			const fname = req.body.fname;
+			const lname = req.body.lname;
 			var failure = false;
 			
 			// 1 - check if registration inputs match expected formats
+			// 1.1 - email
 			if ((typeof(email) === 'undefined') || (email === null) ||
 			!email.match(/.+\@.+\..+/) || !email.match(/(.){1,64}\@(.){1,255}/)) {
 				return done(null, false, 'Invalid Email');
 			}
+			
+			// 1.2 - fname and lname
+			function nameVerification(name) {
+				if ((typeof(name) === 'undefined') || (name == null) || name.length == 0) {
+					return false;
+				}
+				return true;
+			}
+			if (!nameVerification(fname)) { return done(null, false, 'Invalid first name'); }
+			if (!nameVerification(lname)) { return done(null, false, 'Invalid last name'); }
 			
 			// 2 - check if email exists or not, if the email is nonexistent, create a new account
 			User.count({ where: { email: email } }).then((count) => {
@@ -50,7 +63,7 @@ module.exports = (passport) => {
 							console.error(err);
 						}
 						else {
-							User.build({ username: username, email: email, password: hash, name: username }).save()
+							User.build({ username: username, email: email, password: hash, firstName: fname, lastName: lname }).save()
 							.then((user) => { done(null, user); })
 							.catch((err) => { done(null, false, 'Username already exists!'); })
 						}
@@ -68,6 +81,9 @@ module.exports = (passport) => {
 			.then((row) => { if (row) console.log("created ua!"); })
 			.catch((err) => { console.error(err); });
 			
+			if (process.env.NODE_ENV == 'dev') {
+				return;
+			}
 			var mailOptions = {
 				from: 'Movify',
 				to: email,

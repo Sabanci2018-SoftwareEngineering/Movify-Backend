@@ -55,30 +55,39 @@ router.post('/login', passport.authenticate('local-login', {
         } else {
             req.session.cookie.expires = false;
         }
+
+        res.json({ })
     }
 );
 
-router.post('/register', passport.authenticate('local-register', {
-        successRedirect : '/profile'
-    })
-);
+router.post('/register', passport.authenticate('local-register'), (req, res) => {
+    res.json({
+        success: true,
+        results: {
+            registerSuccess: req.isAuthenticated() // return true iff user is authenticated
+        }
+    });
+});
 
 router.post('/activate/:targetUsername', (req, res) => {
-    User_Activation.findOne({ where: { username: req.params.targetUsername, activation_key: req.body.activation_key } })
+    const username = req.params.targetUsername;
+    const key = req.body.key;
+    console.log('activation key: ', key);
+    User_Activation.findOne({ where: { username: username, activation_key: key } })
     .then((user_activation) => {
         if (user_activation) {
             res.status(200);
             res.json({ success: true, msg: 'successful activation!' });
             user_activation.destroy();
 
-            User.findOne({ where: { username: req.params.targetUsername }})
+            User.findOne({ where: { username: username }})
             .then((user) => { 
                 user.isActive = 1; 
                 user.save(); 
             });
         } else {
             res.status(400);
-            res.json({ success: false, msg: 'no such activation key!' });
+            res.json(createResponse('no such activation key!'));
         }
     })
     .catch((err) => { 
@@ -215,7 +224,35 @@ router.get('/title/:targetID/credits', (req, res) => {
 // MARK: AUTHENTICATED ROUTES
 
 router.get('/profile', isAuthenticated, (req, res) => {
-    res.redirect('/profile/' + req.user.username);
+    if (!req.user) {
+        return res.json(createResponse('Unable to fetch user data!'));
+    }
+
+    res.json(createResponse(null, req.user));
+});
+
+router.patch('/profile', isAuthenticated, (req, res) => {
+    if (req.body.name) {
+        req.user.name = req.body.name;
+    }
+    if (req.body.bio) {
+        req.user.bio = req.body.bio;
+    }
+    if (req.body.picture == 'delete') {
+        req.user.picture = null;
+    }
+
+    req.user.save()
+    .then((user) => {
+        if (user) {
+            res.status(200);
+            res.json(createResponse(null, 'successfully updated profile!'));
+        } else { //this case is nearly impossible
+            res.status(400);
+            res.json(craeteResponse('no such user!'));
+        }
+    })
+    .catch(function (err) { console.error(err); });
 });
 
 router.get('/profile/follows', isAuthenticated, (req, res) => {
@@ -337,31 +374,7 @@ router.get('/profile/:targetUsername', isAuthenticated, (req, res) => {
 });
 
 router.post('/profile', isAuthenticated, (req, res) => {
-    // a GET request is more suitable for such function
-    // user deserialization is available in Passport.js
-    // username can be retrieved by req.user.username and necessary DB requests can be
-    // performed to populate the fields of the profile page
-    if (req.body.name) {
-        req.user.name = req.body.name;
-    }
-    if (req.body.bio) {
-        req.user.bio = req.body.bio;
-    }
-    if (req.body.picture == 'delete') {
-        req.user.picture = null;
-    }
-
-    req.user.save()
-    .then((user) => {
-        if (user) {
-            res.status(200);
-            res.json(createResponse(null, 'successfully updated profile!'));
-        } else { //this case is nearly impossible
-            res.status(400);
-            res.json({ success: false, msg: 'no such user!' });
-        }
-    })
-    .catch(function (err) { console.log(err); });
+    
 });
 
 router.all('*', (req, res) => {
