@@ -48,13 +48,14 @@ function createResponse(err, res) {
 
 // MARK: PUBLIC ROUTES
 
+
 router.post('/login', passport.authenticate('local-login'), (req, res) => {
 	if (req.authRes.stat) {
 		res.status(200);
-		res.json(createResponse(null, 'succesfully logged in'));
+		res.json(createResponse(null, { loginSuccess: 'succesfully logged in'} ));
 	} else {
 		res.status(401);
-		res.json(createResponse(req.authRes.res));
+		res.json(createResponse({ error : req.authRes.res }));
 	}
 });
 
