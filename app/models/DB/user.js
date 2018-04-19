@@ -12,7 +12,7 @@ var User = db.define('user', {
 		allowNull: false
 	},
 	password: {
-		type: Sequelize.STRING(40),
+		type: Sequelize.STRING(60),
 		allowNull: false
 	},
 	picture: {
@@ -20,7 +20,11 @@ var User = db.define('user', {
 		allowNull: false,
 		defaultValue: '0000000001'
 	},
-	name: {
+	firstname: {
+		type: Sequelize.STRING,
+		allowNull: false
+	},
+	lastname: {
 		type: Sequelize.STRING,
 		allowNull: false
 	},
@@ -34,7 +38,7 @@ var User = db.define('user', {
 		allowNull: false,
 		defaultValue: false
 	}
-}, 
+},
 {
 	freezeTableName: true
 });
