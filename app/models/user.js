@@ -20,7 +20,10 @@ UserController.loginUser = function (key, password, req, callback) {
 		.then((user) => {
 			if (!user) {
 				req.authRes = { stat: false, res: 'Invalid combination!' };
-				callback(false, 'Invalid combination!');
+				return callback(false, 'Invalid combination!');
+			} else if (user.isActive != 1) {
+				req.authRes = { stat: false, res: 'Account not activated!' };
+				return callback(false, 'Account not activated!');
 			} else {
 				bcrypt.compare(password, user.password, function(err, res) {
 					if (err) { req.authRes = { stat: false, res: err }; callback(false, err); }
@@ -42,14 +45,12 @@ UserController.loginUser = function (key, password, req, callback) {
 	.catch((err) => { req.authRes = { stat: false, res: err }; callback(false, err); });
 }
 
-UserController.registerUser = function (username, email, firstname, lastname, password, req, callback) {
+UserController.registerUser = function (username, email, password, req, callback) {
 	var failure = false;
 
         // 1 - check if registration inputs match expected formats
 	if ((typeof(email) === 'undefined') || (email === null) ||
-		(typeof(firstname) === 'undefined') || (firstname === null) ||
- 		(typeof(lastname) === 'undefined') || (lastname === null) ||
-                	!email.match(/.+\@.+\..+/) || !email.match(/(.){1,64}\@(.){1,255}/)) {
+		!email.match(/.+\@.+\..+/) || !email.match(/(.){1,64}\@(.){1,255}/)) {
 			req.authRes = { stat: false, res: 'Invalid Input' };
 			return callback(false, 'Invalid Input');
 	}
@@ -68,7 +69,7 @@ UserController.registerUser = function (username, email, firstname, lastname, pa
 					failure = true; callback(false, err);
 					req.authRes = { stat: false, res: err };
           			} else {
-					User.build({ username: username, email: email, password: hash, firstname: firstname, lastname: lastname }).save()
+					User.build({ username: username, email: email, password: hash }).save()
                                                     .then((user) => {
 							req.authRes = { stat: true };
 							callback(true, user);
@@ -85,7 +86,7 @@ UserController.registerUser = function (username, email, firstname, lastname, pa
                         							from: 'Movify',
                         							to: email,
                         							subject: 'Movify Activation Key',
-                        							html: '<h1>Welcome ' + firstname + ',</h1><p>Here is your activation key: ' + activation_key + ' </p>'
+                        							html: '<h1>Welcome ' + username + ',</h1><p>Here is your activation key: ' + activation_key + ' </p>'
                 							}
 
                 							transporter.sendMail(mailOptions, (error, info) => {

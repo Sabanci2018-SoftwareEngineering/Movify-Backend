@@ -20,7 +20,7 @@ module.exports = (passport) => {
 			passReqToCallback : true
 		},
 		function(req, username, password, done) {
-			UserController.registerUser(username, req.body.email, req.body.firstname, req.body.lastname, password, req, (stat, res) => {
+			UserController.registerUser(username, req.body.email, password, req, (stat, res) => {
 				if (stat) {
 					done(null, res);
 					console.log('register success: ' + res);
@@ -34,18 +34,18 @@ module.exports = (passport) => {
 
 	passport.use('local-login',
 		new LocalStrategy({
-			usernameField : 'key',
+			usernameField : 'username',
 			passwordField : 'password',
 			passReqToCallback : true
 		},
-		(req, key, password, done) => {
-			UserController.loginUser(key, password, req, (stat, res) => {
+		(req, username, password, done) => {
+			UserController.loginUser(username, password, req, (stat, res) => {
 				if (stat) {
 					done(null, res);
 					console.log('login success: ' + res);
 				} else {
 					done(null, false, res);
-					console.log('login error: ' + res);
+					console.error('login error: ' + res);
 				}
 			});
 		})
