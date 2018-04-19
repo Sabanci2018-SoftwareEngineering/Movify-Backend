@@ -121,7 +121,11 @@ router.get('/logout', isAuthenticated, (req, res) => {
 });
 
 router.get('/profile', isAuthenticated, (req, res) => {
-    res.redirect('/profile/' + req.user.username);
+    if (!req.user) {
+        return res.json(createResponse('Unable to fetch user data!'));
+    }
+
+    res.json(createResponse(null, req.user));
 });
 
 router.get('/profile/follows', isAuthenticated, (req, res) => {
