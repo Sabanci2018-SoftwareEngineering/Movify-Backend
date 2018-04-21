@@ -20,13 +20,13 @@ module.exports = (passport) => {
 			passReqToCallback : true
 		},
 		function(req, username, password, done) {
-			UserController.registerUser(username, req.body.email, req.body.firstname, req.body.lastname, password, req, (stat, res) => {
-				if (stat) {
+			UserController.registerUser(username, req.body.email, req.body.firstname, req.body.lastname, password, req, (err, res) => {
+				if (err) {
+					done(null, false, err);
+					console.log('register error: ' + err);
+				} else {
 					done(null, res);
 					console.log('register success: ' + res);
-				} else {
-					done(null, false, res);
-					console.log('register error: ' + res);
 				}
 			});
 		})
@@ -39,13 +39,13 @@ module.exports = (passport) => {
 			passReqToCallback : true
 		},
 		(req, key, password, done) => {
-			UserController.loginUser(key, password, req, (stat, res) => {
-				if (stat) {
+			UserController.loginUser(key, password, req, (err, res) => {
+				if (err) {
+					done(null, false, err);
+					console.log('login error: ' + err);
+				} else {
 					done(null, res);
 					console.log('login success: ' + res);
-				} else {
-					done(null, false, res);
-					console.log('login error: ' + res);
 				}
 			});
 		})

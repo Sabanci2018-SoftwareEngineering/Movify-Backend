@@ -1,6 +1,6 @@
 var Sequelize = require('sequelize');
 
-var db = new Sequelize('mysql:\/\/movifydbuser:g6gkCx87LS@mysqldbinstance.cm0uytgzeejo.eu-central-1.rds.amazonaws.com/movify_db');
+var db = new Sequelize(process.env.DBCONN);
 
 db.authenticate()
   .then(() => {
@@ -10,7 +10,6 @@ db.authenticate()
     console.error('Unable to connect to the database:', err);
   });
 
-db.sync({ force: true });
-db.query('PRAGMA foreign_keys = OFF;');
+db.sync({ force: false });
 
 module.exports = db;
