@@ -65,20 +65,20 @@ router.post('/register', passport.authenticate('local-register'), (req, res) => 
 });
 
 router.post('/activate/:targetUsername', (req, res) => {
-	UserController.activateUser(req.params.targetUsername, req.body.activation_key, (stat, err) => {
-		res.json(createResponse(!stat, err));
+	UserController.activateUser(req.params.targetUsername, req.body.activation_key, (err, results) => {
+		res.json(createResponse(err, results));
 	});
 });
 
 router.post('/forgot/:key', (req, res) => {
-	UserController.changePassword(req.body.email, req.params.key, req.body.password, (stat, err) => {
-		res.json(createResponse(!stat, err));
+	UserController.changePassword(req.body.email, req.params.key, req.body.password, (err, results) => {
+		res.json(createResponse(err, results));
 	});
 });
 
 router.post('/forgot', (req, res) => {
-	UserController.forgotPassword(req.body.email, (stat, err) => {
-		res.json(createResponse(!stat, err));
+	UserController.forgotPassword(req.body.email, (err, results) => {
+		res.json(createResponse(err, results));
 	});
 });
 
@@ -116,11 +116,7 @@ router.get('/logout', isAuthenticated, (req, res) => {
 });
 
 router.get('/profile', isAuthenticated, (req, res) => {
-    if (!req.user) {
-        return res.json(createResponse('Unable to fetch user data!'));
-    }
-
-    res.json(createResponse(null, req.user));
+    res.redirect('/profile/' + req.user.username);
 });
 
 router.put('/profile', isAuthenticated, (req, res) => {
@@ -150,29 +146,39 @@ router.delete('/watchlist', isAuthenticated, (req, res) => {
     })
 })
 
-router.get('/following', isAuthenticated, (req, res) => {
-    res.redirect(req.user.username + '/follows');
+router.get('/profile', isAuthenticated, (req, res) => {
+    res.redirect('/profile/' + req.user.username);
 });
 
-router.get('/followers', isAuthenticated, (req, res) => {
-    res.redirect(req.user.username + '/followers');
+router.get('/profile/follows', isAuthenticated, (req, res) => {
+    res.redirect('/profile/' + req.user.username + '/follows');
 });
 
-router.get('/:targetUsername/follows', isAuthenticated, (req, res) => {
-	UserController.getFollows(req.params.targetUsername, (stat, result) => {
-		res.json(createResponse(!stat, result));
+router.get('/profile/followers', isAuthenticated, (req, res) => {
+    res.redirect('/profile/' + req.user.username + '/followers');
+});
+
+router.get('/profile/:targetUsername/follows', isAuthenticated, (req, res) => {
+	UserController.getFollows(req.params.targetUsername, (err, results) => {
+		res.json(createResponse(err, results));
 	});
 });
 
-router.get('/:targetUsername/followers', isAuthenticated, (req, res) => {
-	UserController.getFollowers(req.params.targetUsername, (stat, result) => {
-		res.json(createResponse(!stat, result));
+router.get('/profile/:targetUsername/followers', isAuthenticated, (req, res) => {
+	UserController.getFollowers(req.params.targetUsername, (err, results) => {
+		res.json(createResponse(err, results));
 	});
 });
 
-router.get('/:targetUsername', isAuthenticated, (req, res) => {
-	UserController.getProfile(req.params.targetUsername, (stat, result) => {
-		res.json(createResponse(!stat, result));
+router.get('/profile/:targetUsername', isAuthenticated, (req, res) => {
+	UserController.getProfile(req.params.targetUsername, (err, results) => {
+		res.json(createResponse(err, results));
+	});
+});
+
+router.put('/profile', isAuthenticated, (req, res) => {
+	UserController.updateProfile(req.user.username, req.body.picture, req.body.firstname, req.body.lastname, req.body.bio, req.body.password, (err, results) => {
+		res.json(createResponse(err, results));
 	});
 });
 

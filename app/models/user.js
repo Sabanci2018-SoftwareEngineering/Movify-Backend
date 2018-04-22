@@ -5,6 +5,9 @@ var User_Forgot = require('./DB/user_forgot.js');
 var User_Watchlist = require('./DB/user_watchlist.js');
 var Accessor = require('./accessor');
 
+var fs = require('fs');
+var path = require('path');
+var appDir = path.dirname(require.main.filename);
 var Sequelize = require('sequelize');
 var bcrypt = require('bcrypt');
 var transporter = require('../config/transporter.js');
@@ -39,7 +42,7 @@ UserController.loginUser = function (key, password, callback) {
 			});
 		}
 	})
-	.catch((err) => { req.authRes = { stat: false, res: err }; callback(false, err); });
+	.catch((err) => { req.authRes = { err: err, res: null }; callback(err, null); });
 }
 
 UserController.registerUser = function (username, email, password, callback) {
@@ -84,7 +87,7 @@ UserController.registerUser = function (username, email, password, callback) {
 									}
 								});
 							}
-
+							
 							return callback(null, user);
 						})
 						.catch((err) => {
@@ -127,7 +130,6 @@ UserController.getProfile = function (username, callback) {
 	.then((user) => {
 		if (user) {
 			var resJSON = {
-				success: true,
 				username: user.username,
 				firstname: user.firstname,
 				lastname: user.lastname,
@@ -140,17 +142,17 @@ UserController.getProfile = function (username, callback) {
 			});
 			User_Follow.count({ where: { follows: user.username } })
 			.then((count) => {
-				resJSON.followers = count; callback(true, resJSON);
+				resJSON.followers = count; callback(null, resJSON);
 			});
 		} else {
 			const err = 'user ' + req.params.targetUsername + ' not found in /profile/:targetUsername';
-			console.error(err);
-			callback(false, err);
+			console.log(err);
+			callback(err, null);
 		}
 	})
 	.catch((err) => {
-		console.error(err);
-		callback(false, err);
+		console.log(err);
+		callback(err, null);
 	});
 }
 
@@ -159,7 +161,6 @@ UserController.getFollowers = function (username, callback) {
 	.then((user_follow) => {
 		if (user_follow && user_follow.length) {
 			var resJSON = {
-				success: true,
 				users: []
 			};
 			var length = user_follow.length;
@@ -172,23 +173,23 @@ UserController.getFollowers = function (username, callback) {
 							firstname: user.firstname,
 							lastname: user.lastname,
 							bio: user.bio,
-							picture: user.picture
+							picture: 'https:\/\/movify.monus.me/pics/'+user.picture
 						};
 						resJSON.users.push(userJSON);
 					} else {
-						console.error('non-existing follower!');
+						console.log('non-existing follower!');
 					}
 				})
-				.catch((err) => { console.error(err); });
+				.catch((err) => { console.log(err); });
 			}
-			callback(true, resJSON);
+			callback(null, resJSON);
 		} else {
 			const err = 'no such user!';
-			console.error(err);
-			callback(false, err);
+			console.log(err);
+			callback(err, null);
 		}
 	})
-	.catch((err) => { console.error(err); callback(false, err); });
+	.catch((err) => { console.log(err); callback(err, null); });
 }
 
 UserController.getFollows = function (username, callback) {
@@ -196,7 +197,6 @@ UserController.getFollows = function (username, callback) {
 	.then((user_follow) => {
 		if (user_follow && user_follow.length) {
 			var resJSON = {
-				success: true,
 				users: []
 			};
 			var length = user_follow.length;
@@ -209,23 +209,23 @@ UserController.getFollows = function (username, callback) {
 							firstname: user.firstname,
 							lastname: user.lastname,
 							bio: user.bio,
-							picture: user.picture
+							picture: 'https:\/\/movify.monus.me/pics/'+user.picture
 						};
 						resJSON.users.push(userJSON);
 					} else {
-						console.error('non-existing follow!');
+						console.log('non-existing follow!');
 					}
 				})
-				.catch((err) => { console.error(err); });
+				.catch((err) => { console.log(err); });
 			}
-			callback(true, resJSON);
+			callback(null, resJSON);
 		} else {
 			const err = 'no such user!';
-			console.error(err);
-			callback(false, err);
+			console.log(err);
+			callback(err, null);
 		}
 	})
-	.catch((err) => { console.error(err); callback(false, err); });
+	.catch((err) => { console.log(err); callback(err, null); });
 	
 }
 
@@ -254,10 +254,54 @@ UserController.updateProfile = function (username, picture, firstname, lastname,
 			} else { //this case is nearly impossible
 				callback(false, "no such user!");
 			}
+			if (bio) {
+				user.bio = bio;
+			}
+			if (picture) {
+				if (picture == 'delete') user.picture = null;
+				else {
+					if (Buffer.from(picture, 'base64').toString('base64') === picture) {
+						var rawPicture = Buffer.from(picture, 'base64').toString('ascii'); console.log('rawPicture: ' + rawPicture);
+						var image_number = '';
+						for (var i = 0; i < 10; i += 1) image_number += '' + rng();
+						fs.stat('%s/public/pics/%s.jpg'%(appDir,image_number), function(err, stats) { console.log(err);
+							if (err == null) {
+								while (fs.existsSync('%s/public/pics/%s.jpg'%(appDir,image_number))) {
+									image_number = '';
+									for (var i = 0; i < 10; i += 1) image_number += '' + rng();
+								}
+							} else { console.log(err); }
+							fs.writeFile('%s/public/pics/%s.jpg'%(appDir,image_number), rawPicture, (err) => { console.log(err);
+								if (err) {
+									console.log(err);
+									callback(err, null);
+								} else {
+									console.log("written %s image"%('%s/public/pics/%s.jpg'%(appDir,image_number)));
+									user.picture = image_number;
+								}
+							}); console.log("end of fs.stat");
+						}); console.log("after fs.stat");
+					} else {
+						return callback("use base64 encoding for picture!", null);
+					}
+				}
+			}
+			if (password) {
+				user.password = password;
+			}
+			
+			user.save()
+			.then((user) => {
+				if (user) {
+					callback(null, 'successfully updated profile!');
+				} else { //this case is nearly impossible
+					callback("no such user!", null);
+				}
+			})
+			.catch(function (err) { callback(err, null); });
 		})
-		.catch(function (err) { callback(false, err); });
-	})
-	.catch(function (err) { callback(false, err); });
+		.catch(function (err) { callback(err, null); });
+	});
 }
 
 UserController.forgotPassword = function (email, callback) {
@@ -276,63 +320,63 @@ UserController.forgotPassword = function (email, callback) {
 			
 			transporter.sendMail(mailOptions, function(err, info){
 				if (err) {
-					return callback(false, err);
+					return callback(err, null);
 				} else {
 					console.log('Email sent: ' + info.response);
 				}
 			});
 			
 			User_Forgot.build({ username: user.username, forgot_key: forgot_key }).save();
-			callback(true, "successful!");
+			callback(null, "successful!");
 		} else {
-			callback(false, "no such user!");
+			callback("no such user!", null);
 		}
 	})
 }
 
 UserController.changePassword = function (email, key, password, callback) {
 	User.findOne({ where: { email: email } })
-	.then((user) => {
-		// user exists
-		if (user) {
-			User_Forgot.findOne({ where: { username: user.username, forgot_key: key } })
-			.then((user_forgot) => {
-				// forgot key exists
-				if (user_forgot) {
-					if (user_forgot.expiry_date <= new Date()) {
-						user_forgot.destroy();
-						
-						callback(false, "forgot key has been expired");
-					} else {
-						bcrypt.hash(password, SALT_ROUNDS, (err, hash) => {
-							if (err) {
-								callback(false, err);
-							}
-							password = hash;
-							user.password = hash;
-							user.save();
-							user_forgot.destroy();
-							
-							callback(true, "successfully changed password!");
-						});
-					}
-				}
-				// forgot key does NOT exist
-				else {
-					callback(false, "no such forgot key!");
-				}
-			}).catch((err) => {
-				callback(false, err);
-			});
-		}
-		//  user does NOT exist
-		else {
-			callback(false, "no such user!");
-		}
-	})
-	.catch((err) => {
-		callback(false, err);
-	});
+    		.then((user) => {
+        		// user exists
+        		if (user) {
+            			User_Forgot.findOne({ where: { username: user.username, forgot_key: key } })
+            				.then((user_forgot) => {
+                				// forgot key exists
+                				if (user_forgot) {
+                    					if (user_forgot.expiry_date <= new Date()) {
+                        					user_forgot.destroy();
+
+                        					callback("forgot key has been expired", null);
+                    					} else {
+                        					bcrypt.hash(password, SALT_ROUNDS, (err, hash) => {
+                            						if (err) {
+                                						callback(err, null);
+                            						}
+                            						password = hash;
+                            						user.password = hash;
+									user.save();
+                            						user_forgot.destroy();
+
+                            						callback(null, "successfully changed password!");
+                        					});
+                    					}
+                				}
+                				// forgot key does NOT exist
+                				else {
+							callback("no such forgot key!", null);
+                				}
+            				}).catch((err) => {
+                				callback(err, null);
+            				});
+        			}
+        			//  user does NOT exist
+        			else {
+            				callback("no such user!", null);
+        			}
+		})
+        	.catch((err) => {
+            		callback(err, null);
+		});
 }
 
 UserController.getWatchlist = function (username, callback) {
@@ -347,18 +391,18 @@ UserController.addToWatchlist = function (username, titleID, callback) {
 		if (count) {
 			return callback('item already on watchlist');
 		}
-
+		
 		User_Watchlist.build({ username: username, title: titleID }).save()
 		.then((watchlist) => {
 			return callback(null);
 		})
 		.catch((err) => {
 			return callback(err);
-		});
+		})
 	})
 	.catch((err) => {
 		return callback(err);
-	});
+	})
 }
 
 UserController.removeFromWatchlist = function(username, titleID, callback) {
