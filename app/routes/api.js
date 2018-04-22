@@ -50,24 +50,18 @@ function createResponse(err, res) {
 
 
 router.post('/login', passport.authenticate('local-login'), (req, res) => {
-	if (req.authRes.stat) {
-		res.status(200);
-		res.json(createResponse(null, { loginSuccess: 'succesfully logged in'} ));
-	} else {
-		res.status(401);
-		res.json(createResponse({ error : req.authRes.res }));
-	}
+    if (req.isAuthenticated()) {
+        return res.json(createResponse(null, { loginSuccess: 'successfully logged in'}));
+    }
+    return res.status(401).json(createResponse(null, { loginSuccess: 'could not login for some reason'}));
 });
 
 router.post('/register', passport.authenticate('local-register'), (req, res) => {
-	if (req.authRes.stat) {
-		res.removeHeader('set-cookie'); console.log(res.headers);
-		res.status(200);
-		res.json(createResponse(null, 'successfully registered!'));
-	} else {
-		res.status(401);
-		res.json(createResponse(req.authRes.res));
-	}
+    if (req.isAuthenticated()) {
+        res.json(createResponse(null, { registrationSuccess: true }));
+    } else {
+        res.json(createResponse(null, { registrationSuccess: false }));
+    }
 });
 
 router.post('/activate/:targetUsername', (req, res) => {
@@ -129,37 +123,60 @@ router.get('/profile', isAuthenticated, (req, res) => {
     res.json(createResponse(null, req.user));
 });
 
-router.get('/profile/follows', isAuthenticated, (req, res) => {
-    res.redirect('/profile/' + req.user.username + '/follows');
-});
-
-router.get('/profile/followers', isAuthenticated, (req, res) => {
-    res.redirect('/profile/' + req.user.username + '/followers');
-});
-
-router.get('/profile/:targetUsername/follows', isAuthenticated, (req, res) => {
-	UserController.getFollows(req.params.targetUsername, (stat, result) => {
-		res.json(createResponse(!stat, result));
-	});
-});
-
-router.get('/profile/:targetUsername/followers', isAuthenticated, (req, res) => {
-	UserController.getFollowers(req.params.targetUsername, (stat, result) => {
-		res.json(createResponse(!stat, result));
-	});
-});
-
-router.get('/profile/:targetUsername', isAuthenticated, (req, res) => {
-	UserController.getProfile(req.params.targetUsername, (stat, result) => {
-		res.json(createResponse(!stat, result));
-	});
-});
-
 router.put('/profile', isAuthenticated, (req, res) => {
 	UserController.updateProfile(req.user.username, req.body.picture, req.body.firstname, req.body.lastname, req.body.bio, req.body.password, (stat, result) => {
 		res.json(createResponse(!stat, result));
 	});
 });
+
+router.get('/watchlist', isAuthenticated, (req, res) => {
+    UserController.getWatchlist(req.user.username, (err, watchlist) => {
+        res.json(createResponse(err, watchlist));
+    });
+});
+
+router.put('/watchlist', isAuthenticated, (req, res) => {
+    const newTitle = req.body.title;
+    console.log('newtitle: ', newTitle);
+    UserController.addToWatchlist(req.user.username, newTitle, (err) => {
+        res.json(createResponse(err, { addedToWatchlist: true }));
+    });
+})
+
+router.delete('/watchlist', isAuthenticated, (req, res) => {
+    const titleID = req.body.title;
+    UserController.removeFromWatchlist(req.user.username, titleID, (err) => {
+        res.json(createResponse(err, { removedFromWatchlist: true }));
+    })
+})
+
+router.get('/following', isAuthenticated, (req, res) => {
+    res.redirect(req.user.username + '/follows');
+});
+
+router.get('/followers', isAuthenticated, (req, res) => {
+    res.redirect(req.user.username + '/followers');
+});
+
+router.get('/:targetUsername/follows', isAuthenticated, (req, res) => {
+	UserController.getFollows(req.params.targetUsername, (stat, result) => {
+		res.json(createResponse(!stat, result));
+	});
+});
+
+router.get('/:targetUsername/followers', isAuthenticated, (req, res) => {
+	UserController.getFollowers(req.params.targetUsername, (stat, result) => {
+		res.json(createResponse(!stat, result));
+	});
+});
+
+router.get('/:targetUsername', isAuthenticated, (req, res) => {
+	UserController.getProfile(req.params.targetUsername, (stat, result) => {
+		res.json(createResponse(!stat, result));
+	});
+});
+
+
 
 router.all('*', (req, res) => {
     res.status(404);

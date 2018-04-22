@@ -11,7 +11,7 @@ var UserWatchlist = db.define('user_watchlist',
 				key: 'username'
 			}
 		},
-		movie: {
+		title: {
 			type: Sequelize.STRING(10),
 			allowNull: false
 		}
@@ -21,7 +21,7 @@ var UserWatchlist = db.define('user_watchlist',
 		indexes: [
 			{
 				unique: true,
-				fields: [ 'username', 'movie' ]
+				fields: [ 'username', 'title' ]
 			}
 		]
 	}

@@ -20,6 +20,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 app.set('PORT', process.env.PORT || 3000); // set the port
 
+process.env.NODE_ENV = 'DEV';
 
 app.use(cookieParser());
 app.use(bodyParser());
