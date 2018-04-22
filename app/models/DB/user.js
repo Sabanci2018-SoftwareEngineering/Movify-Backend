@@ -22,11 +22,11 @@ var User = db.define('user', {
 	},
 	firstname: {
 		type: Sequelize.STRING,
-		allowNull: false
+		allowNull: true
 	},
 	lastname: {
 		type: Sequelize.STRING,
-		allowNull: false
+		allowNull: true
 	},
 	bio: {
 		type: Sequelize.STRING,

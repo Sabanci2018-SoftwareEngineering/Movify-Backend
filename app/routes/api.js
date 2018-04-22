@@ -48,6 +48,7 @@ function createResponse(err, res) {
 
 // MARK: PUBLIC ROUTES
 
+
 router.post('/login', passport.authenticate('local-login'), (req, res) => {
 	res.json(createResponse(req.authRes.err, req.authRes.res));
 });

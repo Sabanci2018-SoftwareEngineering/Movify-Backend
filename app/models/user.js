@@ -45,7 +45,7 @@ UserController.loginUser = function (key, password, req, callback) {
 	.catch((err) => { req.authRes = { err: err, res: null }; callback(err, null); });
 }
 
-UserController.registerUser = function (username, email, firstname, lastname, password, req, callback) {
+UserController.registerUser = function (username, email, password, req, callback) {
 	var failure = false;
 
         // 1 - check if registration inputs match expected formats
@@ -70,7 +70,7 @@ UserController.registerUser = function (username, email, firstname, lastname, pa
 					failure = true; callback(err, null);
 					req.authRes = { err: err, res: null };
           			} else {
-					User.build({ username: username, email: email, password: hash, firstname: firstname, lastname: lastname }).save()
+					User.build({ username: username, email: email, password: hash }).save()
                                                     .then((user) => {
 							req.authRes = { err: null, res: 'Successfully registered!' };
 							callback(null, user);
@@ -87,7 +87,7 @@ UserController.registerUser = function (username, email, firstname, lastname, pa
                         							from: 'Movify',
                         							to: email,
                         							subject: 'Movify Activation Key',
-                        							html: '<h1>Welcome ' + firstname + ',</h1><p>Here is your activation key: ' + activation_key + ' </p>'
+                        							html: '<h1>Welcome ' + username + ',</h1><p>Here is your activation key: ' + activation_key + ' </p>'
                 							}
 
                 							transporter.sendMail(mailOptions, (error, info) => {
