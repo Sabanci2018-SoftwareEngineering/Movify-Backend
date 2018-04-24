@@ -312,20 +312,22 @@ class User {
 				var forgot_key = ''
 				for (var i = 0; i < 8; i += 1) forgot_key += '' + rng();
 				
-				var mailOptions = {
-					from: 'Movify',
-					to: user.email,
-					subject: 'Movify Forgot Password Key',
-					html: '<h1>Dear ' + user.name + ',</h1><p>Here is your forgot password key: ' + forgot_key + ' </p>'
-				}
-				
-				transporter.sendMail(mailOptions, function(err, info){
-					if (err) {
-						return callback(err);
-					} else {
-						console.log('Email sent: ' + info.response);
+				if (process.env.NODE_ENV != 'DEV') {
+					var mailOptions = {
+						from: 'Movify',
+						to: user.email,
+						subject: 'Movify Forgot Password Key',
+						html: '<h1>Dear ' + user.name + ',</h1><p>Here is your forgot password key: ' + forgot_key + ' </p>'
 					}
-				});
+				
+					transporter.sendMail(mailOptions, function(err, info){
+						if (err) {
+							console.error(err);
+						} else {
+							console.log('Email sent: ' + info.response);
+						}
+					});
+				}
 				var date = new Date(); date.setDate(date + 30);
 				this.forgotDB.build({ username: user.username, forgot_key: forgot_key, expiry_date: date }).save();
 				callback(null, "successful!");
