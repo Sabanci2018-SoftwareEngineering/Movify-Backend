@@ -156,10 +156,10 @@ class User {
 	getFollowers(username, callback) {
 		this.followDB.findAll({ where: { follows: username } })
 		.then((user_follow) => {
+			var resJSON = {
+				users: []
+			};
 			if (user_follow && user_follow.length) {
-				var resJSON = {
-					users: []
-				};
 				var length = user_follow.length;
 				for (var i = 0; i < length; i++) {
 					this.userDB.findOne({ where: { username: user_follow[i].username } })
@@ -179,25 +179,21 @@ class User {
 					})
 					.catch((err) => { console.log(err); });
 				}
-				callback(null, resJSON);
-			} else {
-				const err = 'no such user!';
-				console.error(err);
-				return callback(err);
 			}
+			callback(null, resJSON);
 		})
-		.catch((err) => { 
-			console.error(err); 
+		.catch((err) => {
+			console.error(err);
 			return callback(err); });
 	}
 
 	getFollows(username, callback) {
 		this.followDB.findAll({ where: { username: username } })
 		.then((user_follow) => {
+			var resJSON = {
+				users: []
+			};
 			if (user_follow && user_follow.length) {
-				var resJSON = {
-					users: []
-				};
 				var length = user_follow.length;
 				for (var i = 0; i < length; i++) {
 					this.userDB.findOne({ where: { username: user_follow[i].follows } })
@@ -217,12 +213,8 @@ class User {
 					})
 					.catch((err) => { console.log(err); });
 				}
-				callback(null, resJSON);
-			} else {
-				const err = 'no such user!';
-				console.error(err);
-				return callback(err);
 			}
+			callback(null, resJSON);
 		})
 		.catch((err) => { 
 			console.error(err); 
@@ -328,7 +320,7 @@ class User {
 						}
 					});
 				}
-				var date = new Date(); date.setDate(date + 30);
+				var date = new Date(); date.setDate(date.getDate() + 7);
 				this.forgotDB.build({ username: user.username, forgot_key: forgot_key, expiry_date: date }).save();
 				callback(null, "successful!");
 			} else {
