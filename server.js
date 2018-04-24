@@ -4,6 +4,9 @@
 *   App entry point
    ================ */
 
+// Load environment variables
+require('dotenv').config();
+
 // MARK: module imports
 var express = require('express');
 var bodyParser = require('body-parser');
