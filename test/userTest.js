@@ -15,28 +15,60 @@ var User = new UserController(UserModel, ActivationModel, FollowModel, ForgotMod
 
 describe('Register a new user', (done) => {
     it('Register a new user with username "appleseed.john" and password "password"', (done) => {
-        User.registerUser('appleseed.john', 'johnappleseed@icloud.com', 'password', (err) => {
-            if (err) {
-                done(err);
-            }
+        User.registerUser('appleseed.john', 'johnappleseed@icloud.com', 'password', err => done(err));
+    })
+})
 
-            // Query the database for the inserted user
-            UserModel.findOne({ where: { username: 'appleseed.john' }})
-            .then((user) => {
-                assert(user.get('username') == 'appleseed.john', 'username mismatched!');
-                assert(user.get('email') == 'johnappleseed@icloud.com', 'email mismatched!');
-                bcrypt.compare("password", user.get('password'), (err, same) => {
-                    if (err) {
-                        done(err);
-                    }
-                    else {
-                        assert(same, 'password mismatched!');
-                    }
-                })
-                done();
-            })
-            .catch(err => done(err));
-        });
+describe('Activate user', (done) => {
+    it('Activate the appleseed.john user', (done) => {
+	ActivationModel.findOne({ where: { username: 'appleseed.john' }})
+		.then((activation_model) => {
+			assert(activation_model, 'activation key not created!')
+			User.activateUser('appleseed.john', activation_model.activation_key, err => done(err));
+		})
+		.catch(err => done(err));
+    })
+})
+
+
+describe('Login with that email', (done) => {
+    it('Login with email "johnappleseed@icloud.com" and password "password"', (done) => {
+	User.loginUser('johnappleseed@icloud.com', 'password', err => done(err));
+    })
+})
+
+describe('Login with that username', (done) => {
+    it('Login with username "appleseed.john" and password "password"', (done) => {
+	User.loginUser('appleseed.john', 'password', err => done(err));
+    })
+})
+
+describe('Forgot password', (done) => {
+    it('Forgot password with email "johnappleseed@icloud.com"', (done) => {
+	User.forgotPassword('johnappleseed@icloud.com', err => done(err));
+    })
+})
+
+describe('Change password', (done) => {
+    it('Change password with email "johnappleseed@icloud.com"', (done) => {
+	UserModel.findOne({where: { email: 'johnappleseed@icloud.com' }})
+		.then((user) => {
+			assert(user, 'user does not exists!');
+			ForgotModel.findOne({ where: { username: user.username }})
+                		.then((forgot_model) => {
+                        		assert(forgot_model, 'forgot key not created!')
+                        		User.changePassword('johnappleseed@icloud.com', forgot_model.forgot_key, 'passwd', err => done(err));
+                		})
+                		.catch(err => done(err));
+
+		})
+		.catch(err => done(err));
+    })
+})
+
+describe('Login with new password', (done) => {
+    it('Login with username "appleseed.john" and password "passwd"', (done) => {
+	User.loginUser('appleseed.john', 'passwd', err => done(err));
     })
 })
 

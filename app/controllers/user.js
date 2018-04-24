@@ -16,7 +16,7 @@ class User {
 		this.userDB = userModel;
 		this.activationDB = activationModel;
 		this.followDB = followModel;
-		this.forgotModel = forgotModel;
+		this.forgotDB = forgotModel;
 		this.watchlistDB = watchlistModel;
 	}
 	
@@ -29,20 +29,17 @@ class User {
 				return callback('Account not activated!');
 			} else {
 				bcrypt.compare(password, user.password, function(err, res) {
-					if (err) { return callback(false, err); }
-					if (res) {
-						if (!user.isActive) {
-							return callback('Account not active!');
-						} else {
-							return callback(null, user);
-						}
+					if (err) {
+						return callback(err);
+					} else if (res) {
+						return callback(null, user);
 					} else {
 						return callback('Invalid combination!');
 					}
 				});
 			}
 		})
-		.catch((err) => { req.authRes = { err: err, res: null }; callback(err, null); });
+		.catch((err) => { req.authRes = { err: err, res: null }; callback(err); });
 	}
 	
 	registerUser (username, email, password, callback) {
@@ -107,20 +104,20 @@ class User {
 		this.activationDB.findOne({ where: { username: username, activation_key: key } })
 		.then((user_activation) => {
 			if (user_activation) {
-				callback(true, "success");
+				callback(null, "success");
 				user_activation.destroy();
-				
+
 				this.userDB.findOne({ where: { username: username }})
 				.then((user) => {
 					user.isActive = 1;
 					user.save();
 				});
 			} else {
-				callback(false, "no such activation key!");
+				callback("no such activation key!");
 			}
 		})
 		.catch((err) => {
-			callback(false, err);
+			callback(err);
 			console.error(err);
 		});
 	}
@@ -147,12 +144,12 @@ class User {
 			} else {
 				const err = 'user ' + req.params.targetUsername + ' not found in /profile/:targetUsername';
 				console.log(err);
-				callback(err, null);
+				callback(err);
 			}
 		})
 		.catch((err) => {
 			console.log(err);
-			callback(err, null);
+			callback(err);
 		});
 	}
 
@@ -254,9 +251,9 @@ class User {
 			user.save()
 			.then((user) => {
 				if (user) {
-					callback(true, 'successfully updated profile!');
+					callback(null, 'successfully updated profile!');
 				} else { //this case is nearly impossible
-					callback(false, "no such user!");
+					callback("no such user!");
 				}
 				if (bio) {
 					user.bio = bio;
@@ -286,7 +283,7 @@ class User {
 								}); console.log("end of fs.stat");
 							}); console.log("after fs.stat");
 						} else {
-							return callback("use base64 encoding for picture!", null);
+							return callback("use base64 encoding for picture!");
 						}
 					}
 				}
@@ -324,37 +321,38 @@ class User {
 				
 				transporter.sendMail(mailOptions, function(err, info){
 					if (err) {
-						return callback(err, null);
+						return callback(err);
 					} else {
 						console.log('Email sent: ' + info.response);
 					}
 				});
-				
-				this.forgotDB.build({ username: user.username, forgot_key: forgot_key }).save();
+				var date = new Date(); date.setDate(date + 30);
+				this.forgotDB.build({ username: user.username, forgot_key: forgot_key, expiry_date: date }).save();
 				callback(null, "successful!");
 			} else {
-				callback("no such user!", null);
+				callback("no such user!");
 			}
-		})
+		}).catch(err => callback(err));
 	}
 
 	changePassword(email, key, password, callback) {
-		User.findOne({ where: { email: email } })
+		this.userDB.findOne({ where: { email: email } })
 		.then((user) => {
 			// user exists
 			if (user) {
-				User_Forgot.findOne({ where: { username: user.username, forgot_key: key } })
+				this.forgotDB.findOne({ where: { username: user.username, forgot_key: key } })
 				.then((user_forgot) => {
 					// forgot key exists
 					if (user_forgot) {
-						if (user_forgot.expiry_date <= new Date()) {
+						var now = new Date();
+						if (user_forgot.expiry_date <= now) {
 							user_forgot.destroy();
 							
-							callback("forgot key has been expired", null);
+							callback("forgot key has been expired");
 						} else {
-							bcrypt.hash(password, SALT_ROUNDS, (err, hash) => {
+							bcrypt.hash(password, 12, (err, hash) => {
 								if (err) {
-									callback(err, null);
+									callback(err);
 								}
 								password = hash;
 								user.password = hash;
@@ -367,19 +365,19 @@ class User {
 					}
 					// forgot key does NOT exist
 					else {
-						callback("no such forgot key!", null);
+						callback("no such forgot key!");
 					}
 				}).catch((err) => {
-					callback(err, null);
+					callback(err);
 				});
 			}
 			//  user does NOT exist
 			else {
-				callback("no such user!", null);
+				callback("no such user!");
 			}
 		})
 		.catch((err) => {
-			callback(err, null);
+			callback(err);
 		});
 	}
 
