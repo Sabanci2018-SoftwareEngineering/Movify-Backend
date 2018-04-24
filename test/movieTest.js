@@ -1,9 +1,7 @@
-process.env.NODE_ENV = 'test';
-
-var TMDB = require('../app/models/movie.js');
-var mockMovieDB = require('../app/models/mockMovie.js');
 var expect = require('chai').expect;
 
+var TMDB = require('../app/controllers/movie.js');
+var mockMovieDB = require('../app/controllers/mockMovie.js');
 var tmdb = new TMDB(mockMovieDB);
 
 describe('Search for keyword "Inception" [mock data]', (done) => {

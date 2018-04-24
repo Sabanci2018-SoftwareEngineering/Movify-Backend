@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "build": "npm run lint && npm run test",
-    "test": "mocha --timeout 10000",
+    "test": "export NODE_ENV=TEST && mocha --timeout 10000 && unset NODE_ENV",
     "lint": "jshint **.js",
     "start": "node server.js"
   },
@@ -18,15 +18,18 @@
   "dependencies": {
     "bcrypt": "^1.0.3",
     "cookie-parser": "^1.4.3",
+    "dotenv": "^5.0.1",
     "express": "^4.16.2",
     "express-session": "^1.15.6",
     "moviedb": "^0.2.10",
+    "mysql2": "^1.5.3",
     "nodemailer": "^4.6.4",
-    "npm": "^5.7.1",
+    "npm": "^5.8.0",
     "omdb-api-pt": "^2.0.1",
     "passport": "^0.4.0",
     "passport-local": "^1.0.0",
     "random-number": "0.0.9",
+    "save-dev": "^2.0.0",
     "sequelize": "^4.37.6",
     "sqlite3": "^4.0.0"
   },

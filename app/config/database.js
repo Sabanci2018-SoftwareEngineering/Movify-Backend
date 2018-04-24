@@ -1,13 +1,23 @@
 var Sequelize = require('sequelize');
+var sqlite = require('sqlite3');
 
-var db = new Sequelize( 'movify', '', '',
-		{
-			dialect: 'sqlite',
-			storage: './movify.db'
-		}
-);
+var db;
+if (process.env.NODE_ENV != 'TEST'){
+  db = new Sequelize(process.env.DBCONN);
+}
+else {
+  var memoryDB = new sqlite.Database(':memory:');
+  db = new Sequelize('sqlite://:memory:', { logging: false });
+}
 
-db.sync({ force: true });
-db.query('PRAGMA foreign_keys = OFF;');
+db.authenticate()
+  .then(() => {
+    console.log('Connection has been established successfully.');
+  })
+  .catch(err => {
+    console.error('Unable to connect to the database:', err);
+  });
+
+db.sync({ force: false });
 
 module.exports = db;
