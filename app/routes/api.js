@@ -5,13 +5,15 @@ var bcrypt = require('bcrypt');
 var transporter = require('../config/transporter.js');
 const MovieDB = require('moviedb')('52d83a93b06d28b814fd3ab6f12bcc2a');
 
-var UserController = require('../models/user.js');
+var UserModel = require('../models/DB/user.js');
+var ActivationModel = require('../models/DB/user_activation.js');
+var FollowModel = require('../models/DB/user_follow.js');
+var ForgotModel = require('../models/DB/user_forgot.js');
+var WatchlistModel = require('../models/DB/user_watchlist.js');
 
-var User = require('../models/DB/user.js');
-var User_Activation = require('../models/DB/user_activation.js');
-var User_Follow = require('../models/DB/user_follow.js');
-var User_Forgot = require('../models/DB/user_forgot.js');
-var TMDB = require('../models/movie');
+// Generic controllers
+var UserController = require('../controllers/user.js');
+var TMDB = require('../controllers/movie');
 
 var rng = require('random-number').generator({
     min: 0,
@@ -21,7 +23,9 @@ var rng = require('random-number').generator({
 
 const SALT_ROUNDS = 12;
 
+// Instantiate controllers
 var tmdb = new TMDB(MovieDB);
+var User = new UserController(UserModel, ActivationModel, FollowModel, ForgotModel, WatchlistModel);
 
 if (process.env.NODE_ENV != 'test') {
     router.use('*', (req, res, next) => {
@@ -48,7 +52,6 @@ function createResponse(err, res) {
 
 // MARK: PUBLIC ROUTES
 
-
 router.post('/login', passport.authenticate('local-login'), (req, res) => {
     if (req.isAuthenticated()) {
         return res.json(createResponse(null, { loginSuccess: 'successfully logged in'}));
@@ -65,19 +68,19 @@ router.post('/register', passport.authenticate('local-register'), (req, res) => 
 });
 
 router.post('/activate/:targetUsername', (req, res) => {
-	UserController.activateUser(req.params.targetUsername, req.body.activation_key, (err, results) => {
+	User.activateUser(req.params.targetUsername, req.body.activation_key, (err, results) => {
 		res.json(createResponse(err, results));
 	});
 });
 
 router.post('/forgot/:key', (req, res) => {
-	UserController.changePassword(req.body.email, req.params.key, req.body.password, (err, results) => {
+	User.changePassword(req.body.email, req.params.key, req.body.password, (err, results) => {
 		res.json(createResponse(err, results));
 	});
 });
 
 router.post('/forgot', (req, res) => {
-	UserController.forgotPassword(req.body.email, (err, results) => {
+	User.forgotPassword(req.body.email, (err, results) => {
 		res.json(createResponse(err, results));
 	});
 });
@@ -120,13 +123,13 @@ router.get('/profile', isAuthenticated, (req, res) => {
 });
 
 router.put('/profile', isAuthenticated, (req, res) => {
-	UserController.updateProfile(req.user.username, req.body.picture, req.body.firstname, req.body.lastname, req.body.bio, req.body.password, (stat, result) => {
+	User.updateProfile(req.user.username, req.body.picture, req.body.firstname, req.body.lastname, req.body.bio, req.body.password, (stat, result) => {
 		res.json(createResponse(!stat, result));
 	});
 });
 
 router.get('/watchlist', isAuthenticated, (req, res) => {
-    UserController.getWatchlist(req.user.username, (err, watchlist) => {
+    User.getWatchlist(req.user.username, (err, watchlist) => {
         res.json(createResponse(err, watchlist));
     });
 });
@@ -134,14 +137,14 @@ router.get('/watchlist', isAuthenticated, (req, res) => {
 router.put('/watchlist', isAuthenticated, (req, res) => {
     const newTitle = req.body.title;
     console.log('newtitle: ', newTitle);
-    UserController.addToWatchlist(req.user.username, newTitle, (err) => {
+    User.addToWatchlist(req.user.username, newTitle, (err) => {
         res.json(createResponse(err, { addedToWatchlist: true }));
     });
 })
 
 router.delete('/watchlist', isAuthenticated, (req, res) => {
     const titleID = req.body.title;
-    UserController.removeFromWatchlist(req.user.username, titleID, (err) => {
+    User.removeFromWatchlist(req.user.username, titleID, (err) => {
         res.json(createResponse(err, { removedFromWatchlist: true }));
     })
 })
@@ -159,25 +162,25 @@ router.get('/profile/followers', isAuthenticated, (req, res) => {
 });
 
 router.get('/profile/:targetUsername/follows', isAuthenticated, (req, res) => {
-	UserController.getFollows(req.params.targetUsername, (err, results) => {
+	User.getFollows(req.params.targetUsername, (err, results) => {
 		res.json(createResponse(err, results));
 	});
 });
 
 router.get('/profile/:targetUsername/followers', isAuthenticated, (req, res) => {
-	UserController.getFollowers(req.params.targetUsername, (err, results) => {
+	User.getFollowers(req.params.targetUsername, (err, results) => {
 		res.json(createResponse(err, results));
 	});
 });
 
 router.get('/profile/:targetUsername', isAuthenticated, (req, res) => {
-	UserController.getProfile(req.params.targetUsername, (err, results) => {
+	User.getProfile(req.params.targetUsername, (err, results) => {
 		res.json(createResponse(err, results));
 	});
 });
 
 router.put('/profile', isAuthenticated, (req, res) => {
-	UserController.updateProfile(req.user.username, req.body.picture, req.body.firstname, req.body.lastname, req.body.bio, req.body.password, (err, results) => {
+	User.updateProfile(req.user.username, req.body.picture, req.body.firstname, req.body.lastname, req.body.bio, req.body.password, (err, results) => {
 		res.json(createResponse(err, results));
 	});
 });
