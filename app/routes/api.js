@@ -87,6 +87,12 @@ router.post('/forgot', (req, res) => {
 	});
 });
 
+router.post('/profile/search', (req, res) => {
+	User.searchProfile(req.body.keyword, (err, results) => {
+		res.json(createResponse(err, results));
+	});
+}); 
+
 router.post('/search', (req, res) => {
     tmdb.searchMovie(req.body.keyword, (err, results) => {
         res.json(createResponse(err, results))
@@ -120,13 +126,25 @@ router.get('/logout', isAuthenticated, (req, res) => {
 	});
 });
 
+router.post('/follow', isAuthenticated, (req, res) => {
+	User.followUser(req.user.username, req.body.username, (err, results) => {
+		res.json(createResponse(err, results));
+	});
+});
+
+router.post('/unfollow', isAuthenticated, (req, res) => {
+	User.unfollowUser(req.user.username, req.body.username, (err, results) => {
+		res.json(createResponse(err, results));
+	});
+});
+
 router.get('/profile', isAuthenticated, (req, res) => {
     res.redirect('/profile/' + req.user.username);
 });
 
 router.put('/profile', isAuthenticated, (req, res) => {
-	User.updateProfile(req.user.username, req.body.picture, req.body.firstname, req.body.lastname, req.body.bio, req.body.password, (stat, result) => {
-		res.json(createResponse(!stat, result));
+	User.updateProfile(req.user.username, req.body.picture, req.body.firstname, req.body.lastname, req.body.bio, req.body.password, (err, results) => {
+		res.json(createResponse(err, results));
 	});
 });
 

@@ -31,4 +31,4 @@ var UserFollow = db.define('user_follow', {
 	]
 });
 
-module.exports = UserFollow;	
+module.exports = UserFollow;
