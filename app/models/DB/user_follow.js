@@ -8,7 +8,8 @@ var UserFollow = db.define('user_follow', {
 		references: {
 			model: 'user',
 			key: 'username'
-		}
+		},
+		primaryKey: true
 	},
 	follows: {
 		type: Sequelize.STRING(15),
@@ -16,7 +17,8 @@ var UserFollow = db.define('user_follow', {
 		references: {
 			model: 'user',
 			key: 'username'
-		}
+		},
+		primaryKey: true
 	}
 }, 
 {

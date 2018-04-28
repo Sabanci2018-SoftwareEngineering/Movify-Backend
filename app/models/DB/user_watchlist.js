@@ -9,11 +9,13 @@ var UserWatchlist = db.define('user_watchlist',
 			references: {
 				model: 'user',
 				key: 'username'
-			}
+			},
+			primaryKey: true
 		},
 		title: {
 			type: Sequelize.STRING(10),
-			allowNull: false
+			allowNull: false,
+			primaryKey: true
 		}
 	}, 
 	{

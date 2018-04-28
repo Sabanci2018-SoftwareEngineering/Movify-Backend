@@ -8,11 +8,13 @@ var UserWatch = db.define('user_watch', {
         references: {
             model: 'user',
             key: 'username'
-        }
+        },
+        primaryKey: true
     },
-    movie: {
-        type: Sequelize.STRING(10),
-        allowNull: false
+    title: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        primaryKey: true
     },
     reason: {
         type: Sequelize.ENUM,
@@ -25,7 +27,7 @@ var UserWatch = db.define('user_watch', {
     indexes: [
         {
             unique: true,
-            fields: [ 'username', 'movie' ]
+            fields: [ 'username', 'title' ]
         }
     ]
 });

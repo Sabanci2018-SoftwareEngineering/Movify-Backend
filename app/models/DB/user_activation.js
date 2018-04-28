@@ -9,7 +9,8 @@ var UserActivation = db.define('user_activation', {
 		references: {
 			model: 'user',
 			key: 'username'
-		}
+		},
+		primaryKey: true
 	},
 	activation_key: {
 		type: Sequelize.STRING(8),
