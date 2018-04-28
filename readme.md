@@ -1,5 +1,5 @@
 <h3>API DOCUMENTATION</h3>
-Please refer to the API documentation by clicking <a href="https://documenter.getpostman.com/view/2347717/movify/RVuAARQe">here</a>
+Please refer to the API documentation by clicking <a href="https://documenter.getpostman.com/view/2347717/movify/RW1bmdyz">here</a>
 
 <h3>DOCKER Config</h3>
 To run inside a Docker container:
