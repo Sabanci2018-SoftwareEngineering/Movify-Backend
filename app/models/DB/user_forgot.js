@@ -9,7 +9,8 @@ var UserForgot = db.define('user_forgot', {
 		references: {
 			model: 'user',
 			key: 'username'
-		}
+		},
+		primaryKey: true
 	},
 	forgot_key: {
 		type: Sequelize.STRING(8),

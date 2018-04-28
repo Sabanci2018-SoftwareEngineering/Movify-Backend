@@ -12,12 +12,14 @@ var rng = require('random-number').generator({
 });
 
 class User {
-	constructor(userModel, activationModel, followModel, forgotModel, watchlistModel) {
+	constructor(userModel, activationModel, followModel, forgotModel,
+		watchlistModel, watchedModel) {
 		this.userDB = userModel;
 		this.activationDB = activationModel;
 		this.followDB = followModel;
 		this.forgotDB = forgotModel;
 		this.watchlistDB = watchlistModel;
+		this.watchedDB = watchedModel;
 	}
 	
 	loginUser(key, password, callback) {
@@ -423,6 +425,38 @@ class User {
 			return callback(null);
 		})
 		.catch((err) => {
+			return callback(err);
+		});
+	}
+
+	addWatchedMovie(username, titleID, reason, callback) {
+		this.watchedDB.build({ username: username, title: titleID, reason: (reason ? reason : 'other') }).save()
+		.then((watched) => {
+			return callback(null);
+		})
+		.catch(err => callback(err));
+	}
+
+	removeWatchedMovie(username, titleID, callback) {
+		this.watchedDB.findOne({ where: { username: username, title: titleID }})
+		.then((watched) => {
+			if (!watched) {
+				return callback('title is not watched!');
+			}
+			watched.destroy()
+			.then(() => {
+				callback(null);
+			})
+			.catch(err => callback(err));
+		});
+	}
+
+	getWatchedMovies(username, callback) {
+		this.watchedDB.findAll({ where: { username: username }})
+		.then((watchedMovies) => {
+			callback(null, watchedMovies);
+		})
+		.catch(err => {
 			return callback(err);
 		});
 	}

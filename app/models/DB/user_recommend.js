@@ -8,11 +8,13 @@ var UserRecommend = db.define('user_recommend', {
 		references: {
 			model: 'user',
 			key: 'username'
-		}
+		},
+		primaryKey: true
 	},
 	movie: {
 		type: Sequelize.STRING(10),
-		allowNull: false
+		allowNull: false,
+		primaryKey: true
 	},
 	recommender: {
 		type: Sequelize.STRING(15),
@@ -20,7 +22,8 @@ var UserRecommend = db.define('user_recommend', {
 		references: {
 			model: 'user',
 			key: 'username'
-		}
+		},
+		primaryKey: true
 	},
 	info: {
 		type: Sequelize.STRING,
