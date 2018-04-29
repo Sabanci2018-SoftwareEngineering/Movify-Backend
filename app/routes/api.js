@@ -87,37 +87,37 @@ router.post('/forgot', (req, res) => {
 	});
 });
 
-router.post('/profile/search', (req, res) => {
+// MARK: AUTHENTICATED ROUTES
+
+router.post('/profile/search', isAuthenticated, (req, res) => {
 	User.searchProfile(req.body.keyword, (err, results) => {
 		res.json(createResponse(err, results));
 	});
-}); 
+});
 
-router.post('/search', (req, res) => {
+router.post('/search', isAuthenticated, (req, res) => {
     tmdb.searchMovie(req.body.keyword, (err, results) => {
         res.json(createResponse(err, results))
     });
 });
 
-router.get('/title/:targetID', (req, res) => {
+router.get('/title/:targetID', isAuthenticated, (req, res) => {
     tmdb.movieInfo(req.params.targetID, (err, results) => {
         res.json(createResponse(err, results));
     });
 });
 
-router.get('/title/:targetID/trailer', (req, res) => {
+router.get('/title/:targetID/trailer', isAuthenticated, (req, res) => {
     tmdb.movieTrailer(req.params.targetID, (err, results) => {
         res.json(createResponse(err, results.youtube));
     });
 });
 
-router.get('/title/:targetID/credits', (req, res) => {
+router.get('/title/:targetID/credits', isAuthenticated, (req, res) => {
     tmdb.movieCredits(req.params.targetID, (err, results) => {
         res.json(createResponse(err, results));
     });
 });
-
-// MARK: AUTHENTICATED ROUTES
 
 router.get('/logout', isAuthenticated, (req, res) => {
 	req.session.destroy(function(err) {
@@ -192,8 +192,8 @@ router.get('/profile/:targetUsername/followers', isAuthenticated, (req, res) => 
 	});
 });
 
-router.get('/profile/:targetUsername/watched', (req, res) => {
-    User.getWatchedMovies(req.user.username, (err, watchedMovies) => {
+router.get('/profile/:targetUsername/watched', isAuthenticated, (req, res) => {
+    User.getWatchedMovies(req.params.targetUsername, (err, watchedMovies) => {
         res.json(createResponse(err, watchedMovies));
     })
 });
