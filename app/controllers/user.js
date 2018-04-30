@@ -106,20 +106,20 @@ class User {
 		this.activationDB.findOne({ where: { username: username, activation_key: key } })
 		.then((user_activation) => {
 			if (user_activation) {
-				callback(null, "success");
 				user_activation.destroy();
 
 				this.userDB.findOne({ where: { username: username }})
 				.then((user) => {
 					user.isActive = 1;
 					user.save();
+					return callback(null, "success");
 				});
 			} else {
-				callback("no such activation key!");
+				return callback("no such activation key!");
 			}
 		})
 		.catch((err) => {
-			callback(err);
+			return callback(err);
 			console.error(err);
 		});
 	}
@@ -458,8 +458,17 @@ class User {
 	removeFromWatchlist(username, titleID, callback) {
 		this.watchlistDB.findOne({ where: {username: username, title: titleID }})
 		.then((watchlistItem) => {
-			watchlistItem.destroy();
-			return callback(null);
+			if (watchlistItem) {
+				watchlistItem.destroy()
+				.then(() => {
+					return callback(null);
+				})
+				.catch(err => callback(err));
+			}
+			else {
+				return callback('watchlist item {username: ' + username + ', title: ' + titleID + ' does not exist!');
+			}
+			
 		})
 		.catch((err) => {
 			return callback(err);
