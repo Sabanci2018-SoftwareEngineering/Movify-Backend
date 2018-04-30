@@ -45,7 +45,6 @@ describe('Authentication and password logic tests', (done) => {
     });
 
     it('Login with email "johnappleseed@icloud.com" and password "password"', (done) => {
-	User.loginUser(mockEmail, mockPw, err => done(err));
         UserModel.findOne({ where: { username: 'appleseed.john' }})
         .then((user) => {
             if (!user.get('isActive')) {
@@ -138,14 +137,19 @@ describe('Add, remove and fetch user watchlist items', (done) => {
         User.removeFromWatchlist(mockUser, 27205, (err) => {
             if (err) { return done(err); }
 
-            WatchlistModel.count({ where: { username: mockUser }})
+            WatchlistModel.count({ where: { username: mockUser, title: 27205 }})
             .then((count) => {
-                assert(count == 0, 'there is still an item in the watchlist!');
+                console.log('count: ', count);
+                assert(count == 0, 'there is still an item in the watchlist with id 27205!');
+                WatchlistModel.count({ where: { username: mockUser, title: 27206}})
+                .then((count) => {
+                    assert(count == 1, 'item 27206 should be in database but it is not after deletion of 27205!');
+                    done();
+                })
+                .catch(err => done(err));
             })
             .catch(err => done(err));
-
-            done();
-        })
+        });
     });
 })
 

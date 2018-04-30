@@ -205,7 +205,8 @@ router.get('/profile/:targetUsername/watched', (req, res) => {
                 callback(err, {
                     name: movieInfo.original_title,
                     image: movieInfo.backdrop_path,
-                    id: movie.get('title')
+                    id: movie.get('title'),
+                    releaseDate: movie.get('releaseDate')
                 });
             });
         }, (err, results) => {

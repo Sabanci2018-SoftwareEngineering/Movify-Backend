@@ -458,8 +458,17 @@ class User {
 	removeFromWatchlist(username, titleID, callback) {
 		this.watchlistDB.findOne({ where: {username: username, title: titleID }})
 		.then((watchlistItem) => {
-			watchlistItem.destroy();
-			return callback(null);
+			if (watchlistItem) {
+				watchlistItem.destroy()
+				.then(() => {
+					return callback(null);
+				})
+				.catch(err => callback(err));
+			}
+			else {
+				return callback('watchlist item {username: ' + username + ', title: ' + titleID + ' does not exist!');
+			}
+			
 		})
 		.catch((err) => {
 			return callback(err);
