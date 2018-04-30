@@ -503,7 +503,6 @@ class User {
 			callback(null, watchedMovies);
 		})
 		.catch(err => {
-			console.error(err);
 			return callback(err);
 		});
 	}

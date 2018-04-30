@@ -115,7 +115,7 @@ describe('Add, remove and fetch user watchlist items', (done) => {
         })
     });
 
-    it('Retrieve all watchlist items for appleseed.john and check if the only existent title is 27205', (done) => {
+    it('Retrieve all watchlist items for appleseed.john', (done) => {
         User.getWatchlist(mockUser, (err) => {
             if (err) { return done(err); }
 
@@ -139,7 +139,6 @@ describe('Add, remove and fetch user watchlist items', (done) => {
 
             WatchlistModel.count({ where: { username: mockUser, title: 27205 }})
             .then((count) => {
-                console.log('count: ', count);
                 assert(count == 0, 'there is still an item in the watchlist with id 27205!');
                 WatchlistModel.count({ where: { username: mockUser, title: 27206}})
                 .then((count) => {
@@ -176,4 +175,19 @@ describe('Add, remove and fetch user watched items', (done) => {
             .catch(err => done(err));
         });
     });
+
+    it('Retrieve all watched items for appleed.john', (done) => {
+        User.getWatchedMovies(mockUser, (err, movies) => {
+            if (err) { done(err); }
+            else {
+                props = ['username', 'title', 'reason', 'createdAt', 'updatedAt'];
+                for (var i = 0; i < movies.length; i++) {
+                    for (var j = 0; j < props.length; j++) {
+                        expect(movies[i].dataValues).to.have.property(props[j]);
+                    }
+                }
+                done();
+            }
+        })
+    })
 });
