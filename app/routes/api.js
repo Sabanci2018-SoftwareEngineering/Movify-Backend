@@ -4,6 +4,7 @@ var passport = require('passport');
 var bcrypt = require('bcrypt');
 var transporter = require('../config/transporter.js');
 const MovieDB = require('moviedb')('52d83a93b06d28b814fd3ab6f12bcc2a');
+var async = require('async');
 
 var UserModel = require('../models/DB/user.js');
 var ActivationModel = require('../models/DB/user_activation.js');
@@ -194,9 +195,25 @@ router.get('/profile/:targetUsername/followers', isAuthenticated, (req, res) => 
 	});
 });
 
-router.get('/profile/:targetUsername/watched', isAuthenticated, (req, res) => {
+router.get('/profile/:targetUsername/watched', (req, res) => {
+    
     User.getWatchedMovies(req.params.targetUsername, (err, watchedMovies) => {
-        res.json(createResponse(err, watchedMovies));
+        if (err) { return res.json(createResponse(err)); }
+
+        async.concat(watchedMovies, (movie, callback) => {
+            console.log('currently retrieving info on movie: ', movie.get('title'));
+            tmdb.movieInfo(movie.get('title'), (err, movieInfo) => {
+                console.log('info:', movieInfo);
+                callback(err, {
+                    name: movieInfo.original_title,
+                    image: movieInfo.backdrop_path,
+                    id: movie.get('title'),
+                    releaseDate: movie.get('releaseDate')
+                });
+            });
+        }, (err, results) => {
+            res.json(createResponse(err, results));
+        });
     })
 });
 
