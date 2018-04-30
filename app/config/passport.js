@@ -31,8 +31,7 @@ module.exports = (passport) => {
 		function(req, username, password, done) {
 			User.registerUser(username, req.body.email, password, (err, user) => {
 				if (err) {
-					console.error(err);
-					return done(null, false, { message: err });
+					return done(err, false);
 				}
 				return done(null, user);
 			});
@@ -48,8 +47,7 @@ module.exports = (passport) => {
 		(req, username, password, done) => {
 			User.loginUser(username, password, (err, user) => {
 				if (err) { 
-					console.error(err); 
-					return done(null, false, { message: err }); 
+					return done(err, false); 
 				}
 				return done(null, user);
 			});

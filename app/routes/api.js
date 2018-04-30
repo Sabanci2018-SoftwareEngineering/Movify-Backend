@@ -54,19 +54,21 @@ function createResponse(err, res) {
 
 // MARK: PUBLIC ROUTES
 
-router.post('/login', passport.authenticate('local-login'), (req, res) => {
-    if (req.isAuthenticated()) {
-        return res.json(createResponse(null, { loginSuccess: 'successfully logged in'}));
-    }
-    return res.status(401).json(createResponse(null, { loginSuccess: 'could not login for some reason'}));
+router.post('/login', (req, res, next) => {
+    passport.authenticate('local-login', (err, user, info) => {
+        if (err) {
+            res.status(401).json(createResponse(err, { loginSuccess: false }));
+        }
+        else {
+            res.json(createResponse(err, { loginSuccess: true }));
+        }
+    })(req, res, next); 
 });
 
-router.post('/register', passport.authenticate('local-register'), (req, res) => {
-    if (req.isAuthenticated()) {
-        res.json(createResponse(null, { registrationSuccess: true }));
-    } else {
-        res.json(createResponse(null, { registrationSuccess: false }));
-    }
+router.post('/register', (req, res, next) => {
+    passport.authenticate('local-register', (err, user, info) => {
+        return res.json(createResponse(err, { registrationSuccessful: true }));
+    })(req, res, next);
 });
 
 router.post('/activate/:targetUsername', (req, res) => {
