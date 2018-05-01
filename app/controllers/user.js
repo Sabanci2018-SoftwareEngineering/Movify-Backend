@@ -3,6 +3,7 @@ var path = require('path');
 var appDir = path.dirname(require.main.filename);
 var Sequelize = require('sequelize');
 var bcrypt = require('bcrypt');
+var async = require('async');
 var transporter = require('../config/transporter.js');
 
 var rng = require('random-number').generator({
@@ -505,6 +506,51 @@ class User {
 		.catch(err => {
 			return callback(err);
 		});
+	}
+
+	getFeed(offset, callback) {
+		async.parallel([
+			(callback) => {
+				this.watchedDB.findAll({
+					attributes: ['username', 'title', 'updatedAt'],
+				})
+				.then((watchedArray) => {
+					watchedArray = watchedArray.map(watchedArray => {
+						return Object.assign({}, watchedArray.dataValues, {
+							type: "watched"
+						});
+					})
+					callback(null, watchedArray);
+				})
+				.catch(err => callback(err));
+			},
+			(callback) => {
+				this.watchlistDB.findAll({
+					attributes: ['username', 'title', 'updatedAt'],
+				})
+				.then((watchlistArray) => {
+					watchlistArray = watchlistArray.map(watchlistItem => {
+						return Object.assign({}, watchlistItem.dataValues, {
+							type: "watchlist"
+						});
+					})
+					callback(null, watchlistArray);
+				})
+				.catch(err => callback(err));
+			}
+		], (err, results) => {
+			results = results[0].concat(results[1]);
+			results.sort((a, b) => {
+				var keyA = new Date(a.updatedAt);
+				var keyB = new Date(b.updatedAt);
+				if (keyA > keyB) { return -1; }
+				else if (keyA < keyB) { return 1; }
+				else { return 0; }
+			})
+			return callback(err, results);
+		})
+
+		
 	}
 }
 

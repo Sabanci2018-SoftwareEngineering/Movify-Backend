@@ -61,7 +61,9 @@ router.post('/login', (req, res, next) => {
             res.status(401).json(createResponse(err, { loginSuccess: false }));
         }
         else {
-            res.json(createResponse(err, { loginSuccess: true }));
+            req.login(user, (err) => {
+                res.json(createResponse(err, { loginSuccess: true }));
+            })   
         }
     })(req, res, next); 
 });
@@ -124,7 +126,8 @@ router.get('/title/:targetID/credits', isAuthenticated, (req, res) => {
 
 router.get('/logout', isAuthenticated, (req, res) => {
 	req.session.destroy(function(err) {
-		res.clearCookie('connect.sid');
+        res.clearCookie('connect.sid');
+        req.logout();
 		res.json(createResponse(err, "successfully logged out!"));
 	});
 });
@@ -201,9 +204,7 @@ router.get('/profile/:targetUsername/watched', (req, res) => {
         if (err) { return res.json(createResponse(err)); }
 
         async.concat(watchedMovies, (movie, callback) => {
-            console.log('currently retrieving info on movie: ', movie.get('title'));
             tmdb.movieInfo(movie.get('title'), (err, movieInfo) => {
-                console.log('info:', movieInfo);
                 callback(err, {
                     name: movieInfo.original_title,
                     image: movieInfo.backdrop_path,
@@ -228,6 +229,12 @@ router.delete('/profile/watched', isAuthenticated, (req, res) => {
         res.json(createResponse(err, 'title successfully removed'));
     })
 });
+
+router.get('/feed/:offset', isAuthenticated, (req, res) => {
+    User.getFeed(req.params.offset, (err, feed) => {
+        res.json(createResponse(err, feed));
+    });
+})
 
 
 router.all('*', (req, res) => {

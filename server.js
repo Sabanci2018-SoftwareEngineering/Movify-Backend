@@ -26,8 +26,12 @@ app.set('PORT', process.env.PORT || 3000); // set the port
 process.env.NODE_ENV = 'DEV';
 
 app.use(cookieParser());
-app.use(bodyParser());
-app.use(session({ secret: 'derpy' }));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(session({ 
+    secret: 'derpy',
+    resave: false,
+    saveUninitialized: false
+ }));
 
 app.use(passport.initialize());
 app.use(passport.session());
