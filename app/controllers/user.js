@@ -3,6 +3,7 @@ var path = require('path');
 var appDir = path.dirname(require.main.filename);
 var Sequelize = require('sequelize');
 var bcrypt = require('bcrypt');
+var async = require('async');
 var transporter = require('../config/transporter.js');
 
 var rng = require('random-number').generator({
@@ -505,6 +506,37 @@ class User {
 		.catch(err => {
 			return callback(err);
 		});
+	}
+
+	getFeed(offset, callback) {
+		async.parallel([
+			(callback) => {
+				this.watchedDB.findAll({
+					attributes: ['username', 'title', 'updatedAt'],
+				})
+				.then((watchedArray) => {
+					callback(null, {
+						watched: watchedArray }
+					);
+				})
+				.catch(err => callback(err));
+			},
+			(callback) => {
+				this.watchlistDB.findAll({
+					attributes: ['username', 'title', 'updatedAt'],
+				})
+				.then((watchlistArray) => {
+					callback(null, {
+						watchlist: watchlistArray
+					});
+				})
+				.catch(err => callback(err));
+			}
+		], (err, results) => {
+			return callback(err, results);
+		})
+
+		
 	}
 }
 
