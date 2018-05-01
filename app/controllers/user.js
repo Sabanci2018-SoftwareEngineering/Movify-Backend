@@ -515,9 +515,12 @@ class User {
 					attributes: ['username', 'title', 'updatedAt'],
 				})
 				.then((watchedArray) => {
-					callback(null, {
-						watched: watchedArray }
-					);
+					watchedArray = watchedArray.map(watchedArray => {
+						return Object.assign({}, watchedArray.dataValues, {
+							type: "watched"
+						});
+					})
+					callback(null, watchedArray);
 				})
 				.catch(err => callback(err));
 			},
@@ -526,13 +529,24 @@ class User {
 					attributes: ['username', 'title', 'updatedAt'],
 				})
 				.then((watchlistArray) => {
-					callback(null, {
-						watchlist: watchlistArray
-					});
+					watchlistArray = watchlistArray.map(watchlistItem => {
+						return Object.assign({}, watchlistItem.dataValues, {
+							type: "watchlist"
+						});
+					})
+					callback(null, watchlistArray);
 				})
 				.catch(err => callback(err));
 			}
 		], (err, results) => {
+			results = results[0].concat(results[1]);
+			results.sort((a, b) => {
+				var keyA = new Date(a.updatedAt);
+				var keyB = new Date(b.updatedAt);
+				if (keyA > keyB) { return -1; }
+				else if (keyA < keyB) { return 1; }
+				else { return 0; }
+			})
 			return callback(err, results);
 		})
 

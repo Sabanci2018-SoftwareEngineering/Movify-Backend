@@ -57,7 +57,6 @@ function createResponse(err, res) {
 
 router.post('/login', (req, res, next) => {
     passport.authenticate('local-login', (err, user, info) => {
-        console.log('user is authenticated: ', req.isAuthenticated());
         if (err) {
             res.status(401).json(createResponse(err, { loginSuccess: false }));
         }
