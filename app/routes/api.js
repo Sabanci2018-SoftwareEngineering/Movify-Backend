@@ -185,7 +185,6 @@ router.get('/profile/:targetUsername/watchlist', isAuthenticated, (req, res) => 
     ], (err, results) => {
         res.json(createResponse(err, results));
     })
-
 });
 
 router.post('/profile/watchlist', isAuthenticated, (req, res) => {
@@ -259,9 +258,32 @@ router.delete('/profile/watched', isAuthenticated, (req, res) => {
 });
 
 router.get('/feed/:offset', isAuthenticated, (req, res) => {
-    User.getFeed(req.params.offset, (err, feed) => {
-        res.json(createResponse(err, feed));
-    });
+    async.waterfall([
+        (callback) => {
+            User.getFeed(0, (err, feed) => {
+                callback(err, feed);
+            });
+        },
+        (feed, callback) => {
+            async.each(feed, (feedItem, callback) => {
+
+                tmdb.movieInfo(feedItem.title, (err, info) => {
+                    if (err) { return callback (err); }
+                    
+                    feedItem.original_title = info.original_title,
+                    feedItem.poster_path = info.backdrop_path
+                    feedItem.titleID = feedItem.title;
+                    feedItem.releaseDate = info.release_date,
+                    delete feedItem.title;
+                    callback();
+                })
+            }, (err) => {
+                callback(err, feed);
+            });
+        }
+    ], (err, results) => {
+        res.json(createResponse(err, results));
+    })
 })
 
 
