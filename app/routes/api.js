@@ -13,6 +13,8 @@ var ForgotModel = require('../models/DB/user_forgot.js');
 var WatchlistModel = require('../models/DB/user_watchlist.js');
 var WatchedModel = require('../models/DB/user_watch.js');
 
+var Title = require('../models/title');
+
 // Generic controllers
 var UserController = require('../controllers/user.js');
 var TMDB = require('../controllers/movie');
@@ -155,9 +157,34 @@ router.put('/profile', isAuthenticated, (req, res) => {
 });
 
 router.get('/profile/:targetUsername/watchlist', isAuthenticated, (req, res) => {
-    User.getWatchlist(req.params.targetUsername, (err, watchlist) => {
-        res.json(createResponse(err, watchlist));
-    });
+    async.waterfall([
+        (callback) => {
+            User.getWatchlist(req.params.targetUsername, (err, watchlist) => {
+                callback(err, watchlist);
+            });
+        },
+        (watchlist, callback) => {
+            async.each(watchlist, (watchlistItem, callback) => {
+                itemData = watchlistItem.dataValues;
+                
+                tmdb.movieInfo(watchlistItem.dataValues.title, (err, info) => {
+                    if (err) { return callback (err); }
+                    
+
+                    watchlistItem.dataValues.original_title = info.original_title,
+                    watchlistItem.dataValues.poster_path = info.backdrop_path
+                    watchlistItem.dataValues.titleID = watchlistItem.title;
+                    watchlistItem.dataValues.releaseDate = info.release_date,
+                    delete watchlistItem.dataValues.title;
+                    callback();
+                })
+            }, (err) => {
+                callback(err, watchlist);
+            });
+        }
+    ], (err, results) => {
+        res.json(createResponse(err, results));
+    })
 });
 
 router.post('/profile/watchlist', isAuthenticated, (req, res) => {
@@ -206,9 +233,9 @@ router.get('/profile/:targetUsername/watched', (req, res) => {
         async.concat(watchedMovies, (movie, callback) => {
             tmdb.movieInfo(movie.get('title'), (err, movieInfo) => {
                 callback(err, {
-                    name: movieInfo.original_title,
-                    image: movieInfo.backdrop_path,
-                    id: movie.get('title'),
+                    original_title: movieInfo.original_title,
+                    poster_path: movieInfo.backdrop_path,
+                    titleID: movie.get('title'),
                     releaseDate: movie.get('releaseDate')
                 });
             });
@@ -231,9 +258,32 @@ router.delete('/profile/watched', isAuthenticated, (req, res) => {
 });
 
 router.get('/feed/:offset', isAuthenticated, (req, res) => {
-    User.getFeed(req.params.offset, (err, feed) => {
-        res.json(createResponse(err, feed));
-    });
+    async.waterfall([
+        (callback) => {
+            User.getFeed(0, (err, feed) => {
+                callback(err, feed);
+            });
+        },
+        (feed, callback) => {
+            async.each(feed, (feedItem, callback) => {
+
+                tmdb.movieInfo(feedItem.title, (err, info) => {
+                    if (err) { return callback (err); }
+                    
+                    feedItem.original_title = info.original_title,
+                    feedItem.poster_path = info.backdrop_path
+                    feedItem.titleID = feedItem.title;
+                    feedItem.releaseDate = info.release_date,
+                    delete feedItem.title;
+                    callback();
+                })
+            }, (err) => {
+                callback(err, feed);
+            });
+        }
+    ], (err, results) => {
+        res.json(createResponse(err, results));
+    })
 })
 
 
