@@ -129,10 +129,17 @@ class User {
 		this.userDB.findOne({ where: { username: follows } })
 		.then((user) => {
 			if (user) {
-				this.followDB.build({ username: username, follows: follows }).save()
-				.then((follow) => {
-					if (follow) callback(null, "success");
-				}).catch(err => callback(err));
+				this.followDB.findOne({ where: { username: username, follows: follows}})
+				.then((followEntry) => {
+					if (followEntry) {
+						return callback('already following');
+					}
+					this.followDB.build({ username: username, follows: follows }).save()
+					.then((follow) => {
+						if (follow) callback(null, "success");
+					}).catch(err => callback(err));
+				})
+				.catch(err => callback(err));
 			} else {
 				callback("no such user!");
 			}
@@ -204,70 +211,51 @@ class User {
 	getFollowers(username, callback) {
 		this.followDB.findAll({ where: { follows: username } })
 		.then((user_follow) => {
-			var resJSON = {
-				users: []
-			};
-			if (user_follow && user_follow.length) {
-				var length = user_follow.length;
-				for (var i = 0; i < length; i++) {
-					this.userDB.findOne({ where: { username: user_follow[i].username } })
-					.then((user) => {
-						if (user) {
-							var userJSON = {
-								username: user.username,
-								firstname: user.firstname,
-								lastname: user.lastname,
-								bio: user.bio,
-								picture: 'https:\/\/movify.monus.me/pics/'+user.picture
-							};
-							resJSON.users.push(userJSON);
-						} else {
-							console.error('non-existing follower!');
-						}
-					})
-					.catch((err) => { console.log(err); });
-				}
-			}
-			callback(null, resJSON);
+			async.concat(user_follow, (follow, callback) => {
+				this.userDB.findOne({ where: { username: follow.username } })
+				.then((user) => {
+					if (user) {
+						callback(null, {
+							username: user.username,
+							firstname: user.firstname,
+							lastname: user.lastname,
+							bio: user.bio,
+							picture: 'https:\/\/movify.monus.me/pics/'+user.picture
+						});
+					} else {
+						callback('non-existing follower!');
+					}
+				})
+				.catch((err) => { callback(err) });
+			}, (err, results) => {
+				callback(err, results);
+			});
 		})
-		.catch((err) => {
-			console.error(err);
-			return callback(err); });
 	}
 
 	getFollows(username, callback) {
 		this.followDB.findAll({ where: { username: username } })
 		.then((user_follow) => {
-			var resJSON = {
-				users: []
-			};
-			if (user_follow && user_follow.length) {
-				var length = user_follow.length;
-				for (var i = 0; i < length; i++) {
-					this.userDB.findOne({ where: { username: user_follow[i].follows } })
-					.then((user) => {
-						if (user) {
-							var userJSON = {
-								username: user.username,
-								firstname: user.firstname,
-								lastname: user.lastname,
-								bio: user.bio,
-								picture: 'https:\/\/movify.monus.me/pics/'+user.picture
-							};
-							resJSON.users.push(userJSON);
-						} else {
-							console.error('non-existing follow!');
-						}
-					})
-					.catch((err) => { console.log(err); });
-				}
-			}
-			callback(null, resJSON);
+			async.concat(user_follow, (follow, callback) => {
+				this.userDB.findOne({ where: { username: follow.follows } })
+				.then((user) => {
+					if (user) {
+						callback(null, {
+							username: user.username,
+							firstname: user.firstname,
+							lastname: user.lastname,
+							bio: user.bio,
+							picture: 'https:\/\/movify.monus.me/pics/'+user.picture
+						});
+					} else {
+						callback('non-existing follow!');
+					}
+				})
+				.catch((err) => { callback(err) });
+			}, (err, results) => {
+				callback(err, results);
+			});
 		})
-		.catch((err) => { 
-			console.error(err); 
-			return callback(err); });
-		
 	}
 
 	updateProfile(username, picture, firstname, lastname, bio, password, callback) {
