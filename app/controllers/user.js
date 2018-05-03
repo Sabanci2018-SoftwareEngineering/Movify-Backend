@@ -126,6 +126,9 @@ class User {
 	}
 
 	followUser(username, follows, callback) {
+		if (username == follows) {
+			return callback('self follow is not permitted!');
+		}
 		this.userDB.findOne({ where: { username: follows } })
 		.then((user) => {
 			if (user) {
