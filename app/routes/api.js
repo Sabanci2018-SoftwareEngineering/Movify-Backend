@@ -274,6 +274,7 @@ router.get('/feed/:offset', isAuthenticated, (req, res) => {
                     feedItem.poster_path = info.backdrop_path
                     feedItem.titleID = feedItem.title;
                     feedItem.releaseDate = info.release_date,
+                    feedItem.overview = info.overview,
                     delete feedItem.title;
                     callback();
                 })
