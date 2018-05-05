@@ -181,32 +181,33 @@ class User {
 	}
 
 	getProfile(username, callback) {
+		console.log('getProfile invoked with username:', username);
 		this.userDB.findOne({ where: { username: username } })
 		.then((user) => {
-			if (user) {
-				var resJSON = {
-					username: user.username,
-					firstname: user.firstname,
-					lastname: user.lastname,
-					picture: 'https:\/\/movify.monus.me/pics/'+user.picture,
-					bio: user.bio
-				};
-				this.followDB.count({ where: { username: user.username } })
-				.then((count) => {
-					resJSON.follows = count;
-				});
-				this.followDB.count({ where: { follows: user.username } })
-				.then((count) => {
-					resJSON.followers = count; callback(null, resJSON);
-				});
-			} else {
-				const err = 'user ' + req.params.targetUsername + ' not found in /profile/:targetUsername';
-				console.log(err);
-				callback(err);
+			if (!user) {
+				callback('no user with username "' + username + '"');
 			}
+			async.parallel({
+				following: (callback) => {
+					this.followDB.count({ where: { username: user.username }})
+					.then(count => callback(null, count))
+					.catch(err => callback(err));
+				},
+				followers: (callback) => {
+					this.followDB.count({ where: { follows: user.username }})
+					.then(count => callback(null, count))
+					.catch(err => callback(err));
+				}
+			}, (err, results) => {
+				results.username = user.username;
+				results.firstname = user.firstname;
+				results.lastname = user.lastname;
+				results.picture = 'https:\/\/movify.monus.me/pics/'+user.picture;
+				results.bio = user.bio;
+				callback(err, results);
+			})
 		})
 		.catch((err) => {
-			console.log(err);
 			callback(err);
 		});
 	}
