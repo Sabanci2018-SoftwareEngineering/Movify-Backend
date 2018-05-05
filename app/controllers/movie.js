@@ -2,13 +2,27 @@ class TMDB {
     constructor(MovieDB) {
         this.tmdb = MovieDB;
     }
+
+    _checkTitleKeys(object) {
+        const props = ['original_title', 'poster_path', 'id'];
+        const objectKeys = Object.keys(object);
+        for (var i = 0; i < props.length; i++) {
+            if (!props[i] in objectKeys) {
+                throw 'Object keys does not conform with the title model';
+            }
+        }
+    }
     
     searchMovie(keyword, callback) {
         this.tmdb.searchMovie({ query: keyword }, (err, res) => {
             if (err) {
                 return callback(err);
             }
-            
+
+            for (var i = 0; i < res.length; i++) {
+                _checkTitleKeys(res.results[i]);
+            }
+
             return callback(null, res);
         });
     }
@@ -18,7 +32,8 @@ class TMDB {
             if (err) {
                 return callback(err);
             }
-            
+            _checkTitleKeys(res);
+
             return callback(null, res);
         });
     }

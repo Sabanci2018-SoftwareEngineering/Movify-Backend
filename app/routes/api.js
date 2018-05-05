@@ -13,8 +13,6 @@ var ForgotModel = require('../models/DB/user_forgot.js');
 var WatchlistModel = require('../models/DB/user_watchlist.js');
 var WatchedModel = require('../models/DB/user_watch.js');
 
-var Title = require('../models/title');
-
 // Generic controllers
 var UserController = require('../controllers/user.js');
 var TMDB = require('../controllers/movie');
