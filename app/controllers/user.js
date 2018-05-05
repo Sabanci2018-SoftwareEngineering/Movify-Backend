@@ -181,7 +181,6 @@ class User {
 	}
 
 	getProfile(username, callback) {
-		console.log('getProfile invoked with username:', username);
 		this.userDB.findOne({ where: { username: username } })
 		.then((user) => {
 			if (!user) {
