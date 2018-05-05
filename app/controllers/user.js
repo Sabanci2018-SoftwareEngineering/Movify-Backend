@@ -71,7 +71,7 @@ class User {
 							
 							this.activationDB.build({ username: username, activation_key: activation_key }).save()
 							.then((row) => {
-								if (process.env.NODE_ENV != 'DEV') {
+								if (process.env.NODE_ENV == 'PROD') {
 									var mailOptions = {
 										from: 'Movify',
 										to: email,
@@ -343,7 +343,7 @@ class User {
 				var forgot_key = ''
 				for (var i = 0; i < 8; i += 1) forgot_key += '' + rng();
 				
-				if (process.env.NODE_ENV != 'DEV') {
+				if (process.env.NODE_ENV == 'PROD') {
 					var mailOptions = {
 						from: 'Movify',
 						to: user.email,
