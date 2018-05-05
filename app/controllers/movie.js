@@ -1,16 +1,16 @@
+function _checkTitleKeys(object) {
+    const props = ['original_title', 'poster_path', 'id'];
+    const objectKeys = Object.keys(object);
+    for (var i = 0; i < props.length; i++) {
+        if (!props[i] in objectKeys) {
+            throw 'Object keys does not conform with the title model';
+        }
+    }
+}
+
 class TMDB {
     constructor(MovieDB) {
         this.tmdb = MovieDB;
-    }
-
-    _checkTitleKeys(object) {
-        const props = ['original_title', 'poster_path', 'id'];
-        const objectKeys = Object.keys(object);
-        for (var i = 0; i < props.length; i++) {
-            if (!props[i] in objectKeys) {
-                throw 'Object keys does not conform with the title model';
-            }
-        }
     }
     
     searchMovie(keyword, callback) {
