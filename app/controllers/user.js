@@ -23,6 +23,7 @@ class User {
 		this.watchedDB = watchedModel;
 	}
 	
+	// MARK: Authentication methods
 	loginUser(key, password, callback) {
 		this.userDB.findOne({where: { [Sequelize.Op.or]: [ { username: key }, { email: key } ] }})
 		.then((user) => {
@@ -125,6 +126,85 @@ class User {
 		});
 	}
 
+	forgotPassword(email, callback) {
+		this.userDB.findOne({ where: { email: email } })
+		.then((user) => {
+			if (user) {
+				var forgot_key = ''
+				for (var i = 0; i < 8; i += 1) forgot_key += '' + rng();
+				
+				if (process.env.NODE_ENV == 'PROD') {
+					var mailOptions = {
+						from: 'Movify',
+						to: user.email,
+						subject: 'Movify Forgot Password Key',
+						html: '<h1>Dear ' + user.name + ',</h1><p>Here is your forgot password key: ' + forgot_key + ' </p>'
+					}
+				
+					transporter.sendMail(mailOptions, function(err, info){
+						if (err) {
+							console.error(err);
+						} else {
+							console.log('Email sent: ' + info.response);
+						}
+					});
+				}
+				var date = new Date(); date.setDate(date.getDate() + 7);
+				this.forgotDB.build({ username: user.username, forgot_key: forgot_key, expiry_date: date }).save();
+				callback(null, "successful!");
+			} else {
+				callback("no such user!");
+			}
+		}).catch(err => callback(err));
+	}
+
+	changePassword(email, key, password, callback) {
+		this.userDB.findOne({ where: { email: email } })
+		.then((user) => {
+			// user exists
+			if (user) {
+				this.forgotDB.findOne({ where: { username: user.username, forgot_key: key } })
+				.then((user_forgot) => {
+					// forgot key exists
+					if (user_forgot) {
+						var now = new Date();
+						if (user_forgot.expiry_date <= now) {
+							user_forgot.destroy();
+							
+							callback("forgot key has been expired");
+						} else {
+							bcrypt.hash(password, 12, (err, hash) => {
+								if (err) {
+									callback(err);
+								}
+								password = hash;
+								user.password = hash;
+								user.save();
+								user_forgot.destroy();
+								
+								callback(null, "successfully changed password!");
+							});
+						}
+					}
+					// forgot key does NOT exist
+					else {
+						callback("no such forgot key!");
+					}
+				}).catch((err) => {
+					callback(err);
+				});
+			}
+			//  user does NOT exist
+			else {
+				callback("no such user!");
+			}
+		})
+		.catch((err) => {
+			callback(err);
+		});
+	}
+
+	// MARK: Follow methods
 	followUser(username, follows, callback) {
 		if (username == follows) {
 			return callback('self follow is not permitted!');
@@ -264,6 +344,141 @@ class User {
 		})
 	}
 
+	// MARK: Watchlist and watched methods
+	getWatchlist(username, callback) {
+		this.watchlistDB.findAll({ where: { username: username} })
+		.then((watchlist) => {
+			if (!watchlist) {
+				return callback("user " + username + " does not have a watchlist");
+			}
+			return callback(null, watchlist);
+		})
+		.catch((err) => {
+			return callback(err);
+		});
+	}
+
+	addToWatchlist(username, titleID, callback) {
+		this.watchlistDB.count({ where: {username: username, title: titleID }})
+		.then((count) => {
+			if (count) {
+				return callback('item already on watchlist');
+			}
+			
+			this.watchlistDB.build({ username: username, title: titleID }).save()
+			.then((watchlist) => {
+				return callback(null);
+			})
+			.catch((err) => {
+				return callback(err);
+			})
+		})
+		.catch((err) => {
+			return callback(err);
+		})
+	}
+
+	removeFromWatchlist(username, titleID, callback) {
+		this.watchlistDB.findOne({ where: {username: username, title: titleID }})
+		.then((watchlistItem) => {
+			if (watchlistItem) {
+				watchlistItem.destroy()
+				.then(() => {
+					return callback(null);
+				})
+				.catch(err => callback(err));
+			}
+			else {
+				return callback('watchlist item {username: ' + username + ', title: ' + titleID + ' does not exist!');
+			}
+			
+		})
+		.catch((err) => {
+			return callback(err);
+		});
+	}
+
+	getWatchedMovies(username, callback) {
+		this.watchedDB.findAll({ where: { username: username }})
+		.then((watchedMovies) => {
+			callback(null, watchedMovies);
+		})
+		.catch(err => {
+			return callback(err);
+		});
+	}
+
+	addWatchedMovie(username, titleID, reason, callback) {
+		this.watchedDB.build({ username: username, title: titleID, reason: (reason ? reason : 'other') }).save()
+		.then((watched) => {
+			return callback(null);
+		})
+		.catch(err => callback(err));
+	}
+
+	removeWatchedMovie(username, titleID, callback) {
+		this.watchedDB.findOne({ where: { username: username, title: titleID }})
+		.then((watched) => {
+			if (!watched) {
+				return callback('title is not watched!');
+			}
+			watched.destroy()
+			.then(() => {
+				callback(null);
+			})
+			.catch(err => callback(err));
+		});
+	}
+	
+	// Profile information retrieval and mutation methods
+	searchProfile(username, callback) {
+		this.userDB.findAll({ where: { username: { $like: '%' + username + '%' } } })
+		.then((users) => {
+			var resJSON = {
+				users: []
+                        };
+			if (users && users.length) {
+				var length = users.length;
+				for (var i = 0; i < length; i++) {
+					resJSON.users.push({ username: users[i].username, picture: 'https:\/\/movify.monus.me/pics/'+users[i].picture });
+				}
+			}
+			callback(null, resJSON);
+		})
+		.catch(err => callback(err));
+	}
+
+	getProfile(username, callback) {
+		this.userDB.findOne({ where: { username: username } })
+		.then((user) => {
+			if (user) {
+				var resJSON = {
+					username: user.username,
+					firstname: user.firstname,
+					lastname: user.lastname,
+					picture: 'https:\/\/movify.monus.me/pics/'+user.picture,
+					bio: user.bio
+				};
+				this.followDB.count({ where: { username: user.username } })
+				.then((count) => {
+					resJSON.follows = count;
+				});
+				this.followDB.count({ where: { follows: user.username } })
+				.then((count) => {
+					resJSON.followers = count; callback(null, resJSON);
+				});
+			} else {
+				const err = 'user ' + req.params.targetUsername + ' not found in /profile/:targetUsername';
+				console.log(err);
+				callback(err);
+			}
+		})
+		.catch((err) => {
+			console.log(err);
+			callback(err);
+		});
+	}
+
 	updateProfile(username, picture, firstname, lastname, bio, password, callback) {
 		this.userDB.findOne({ where: { username: username } })
 		.then((user) => {
@@ -336,169 +551,6 @@ class User {
 				.catch(function (err) { return callback(err); });
 			})
 			.catch(function (err) { return callback(err); });
-		});
-	}
-
-	forgotPassword(email, callback) {
-		this.userDB.findOne({ where: { email: email } })
-		.then((user) => {
-			if (user) {
-				var forgot_key = ''
-				for (var i = 0; i < 8; i += 1) forgot_key += '' + rng();
-				
-				if (process.env.NODE_ENV == 'PROD') {
-					var mailOptions = {
-						from: 'Movify',
-						to: user.email,
-						subject: 'Movify Forgot Password Key',
-						html: '<h1>Dear ' + user.name + ',</h1><p>Here is your forgot password key: ' + forgot_key + ' </p>'
-					}
-				
-					transporter.sendMail(mailOptions, function(err, info){
-						if (err) {
-							console.error(err);
-						} else {
-							console.log('Email sent: ' + info.response);
-						}
-					});
-				}
-				var date = new Date(); date.setDate(date.getDate() + 7);
-				this.forgotDB.build({ username: user.username, forgot_key: forgot_key, expiry_date: date }).save();
-				callback(null, "successful!");
-			} else {
-				callback("no such user!");
-			}
-		}).catch(err => callback(err));
-	}
-
-	changePassword(email, key, password, callback) {
-		this.userDB.findOne({ where: { email: email } })
-		.then((user) => {
-			// user exists
-			if (user) {
-				this.forgotDB.findOne({ where: { username: user.username, forgot_key: key } })
-				.then((user_forgot) => {
-					// forgot key exists
-					if (user_forgot) {
-						var now = new Date();
-						if (user_forgot.expiry_date <= now) {
-							user_forgot.destroy();
-							
-							callback("forgot key has been expired");
-						} else {
-							bcrypt.hash(password, 12, (err, hash) => {
-								if (err) {
-									callback(err);
-								}
-								password = hash;
-								user.password = hash;
-								user.save();
-								user_forgot.destroy();
-								
-								callback(null, "successfully changed password!");
-							});
-						}
-					}
-					// forgot key does NOT exist
-					else {
-						callback("no such forgot key!");
-					}
-				}).catch((err) => {
-					callback(err);
-				});
-			}
-			//  user does NOT exist
-			else {
-				callback("no such user!");
-			}
-		})
-		.catch((err) => {
-			callback(err);
-		});
-	}
-
-	getWatchlist(username, callback) {
-		this.watchlistDB.findAll({ where: { username: username} })
-		.then((watchlist) => {
-			if (!watchlist) {
-				return callback("user " + username + " does not have a watchlist");
-			}
-			return callback(null, watchlist);
-		})
-		.catch((err) => {
-			return callback(err);
-		});
-	}
-
-	addToWatchlist(username, titleID, callback) {
-		this.watchlistDB.count({ where: {username: username, title: titleID }})
-		.then((count) => {
-			if (count) {
-				return callback('item already on watchlist');
-			}
-			
-			this.watchlistDB.build({ username: username, title: titleID }).save()
-			.then((watchlist) => {
-				return callback(null);
-			})
-			.catch((err) => {
-				return callback(err);
-			})
-		})
-		.catch((err) => {
-			return callback(err);
-		})
-	}
-
-	removeFromWatchlist(username, titleID, callback) {
-		this.watchlistDB.findOne({ where: {username: username, title: titleID }})
-		.then((watchlistItem) => {
-			if (watchlistItem) {
-				watchlistItem.destroy()
-				.then(() => {
-					return callback(null);
-				})
-				.catch(err => callback(err));
-			}
-			else {
-				return callback('watchlist item {username: ' + username + ', title: ' + titleID + ' does not exist!');
-			}
-			
-		})
-		.catch((err) => {
-			return callback(err);
-		});
-	}
-
-	addWatchedMovie(username, titleID, reason, callback) {
-		this.watchedDB.build({ username: username, title: titleID, reason: (reason ? reason : 'other') }).save()
-		.then((watched) => {
-			return callback(null);
-		})
-		.catch(err => callback(err));
-	}
-
-	removeWatchedMovie(username, titleID, callback) {
-		this.watchedDB.findOne({ where: { username: username, title: titleID }})
-		.then((watched) => {
-			if (!watched) {
-				return callback('title is not watched!');
-			}
-			watched.destroy()
-			.then(() => {
-				callback(null);
-			})
-			.catch(err => callback(err));
-		});
-	}
-
-	getWatchedMovies(username, callback) {
-		this.watchedDB.findAll({ where: { username: username }})
-		.then((watchedMovies) => {
-			callback(null, watchedMovies);
-		})
-		.catch(err => {
-			return callback(err);
 		});
 	}
 
