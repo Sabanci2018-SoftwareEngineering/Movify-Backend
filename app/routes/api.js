@@ -251,7 +251,7 @@ router.get('/title/:targetID', isAuthenticated, (req, res) => {
                 callback(err, results);
             })
         },
-        cast: (callback) => {
+        credits: (callback) => {
             tmdb.movieCredits(req.params.targetID, (err, results) => {
                 callback(err, results);
             })
@@ -263,18 +263,12 @@ router.get('/title/:targetID', isAuthenticated, (req, res) => {
         }
     }, (err, results) => {
         if (err) { res.json(createResponse(err)); }
-    });
-});
-
-router.get('/title/:targetID/trailer', isAuthenticated, (req, res) => {
-    tmdb.movieTrailer(req.params.targetID, (err, results) => {
-        res.json(createResponse(err, results.youtube));
-    });
-});
-
-router.get('/title/:targetID/credits', isAuthenticated, (req, res) => {
-    tmdb.movieCredits(req.params.targetID, (err, results) => {
-        res.json(createResponse(err, results));
+        else {
+            res.json(createResponse(null, new TitleDetail(results.movieInfo.original_title, results.movieInfo.poster_path,
+                results.movieInfo.id, results.movieInfo.release_date, results.movieInfo.overview, results.movieInfo.genres,
+                results.movieInfo.runtime, results.movieInfo.status, results.movieInfo.tagline, results.movieInfo.vote_average,
+                results.movieInfo.vote_count, results.credits.cast, results.credits.crew, results.trailer.youtube)));
+        }
     });
 });
 
