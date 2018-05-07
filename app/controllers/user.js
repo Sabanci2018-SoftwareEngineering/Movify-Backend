@@ -154,8 +154,10 @@ class User {
 		this.followDB.findOne({ where: { username: username, follows: unfollows } })
 		.then((follow) => {
 			if (follow) {
-				callback(null, "success");
-				follow.destroy();
+				follow.destroy()
+				.then(() => {
+					callback(null);
+				})
 			} else {
 				callback("not even follows!");
 			}
