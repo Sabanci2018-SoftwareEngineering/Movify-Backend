@@ -16,7 +16,7 @@ curl --request GET \
 	--cookie /tmp/cookie
 ```
 
-Please refer to the API documentation by clicking <a href="https://documenter.getpostman.com/view/2347717/movify/RW1bmdyz">here</a>
+Please refer to the API documentation by clicking <a href="https://documenter.getpostman.com/view/2347717/movify/RW1dHywM" target="_blank">here</a>
 
 
 
