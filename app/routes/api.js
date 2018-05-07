@@ -14,6 +14,7 @@ var WatchlistModel = require('../models/DB/user_watchlist.js');
 var WatchedModel = require('../models/DB/user_watch.js');
 
 var TitleItem = require('../models/titleItem');
+var TitleDetail = require('../models/titleDetail');
 
 // Generic controllers
 var UserController = require('../controllers/user.js');
@@ -124,9 +125,7 @@ router.get('/feed/:offset', isAuthenticated, (req, res) => {
                     if (err) { return callback (err); }
 
                     callback(null, new TitleItem(info.original_title, info.backdrop_path, 
-                        feedItem.title, info.release_date, {
-                            overview: info.overview
-                        }));
+                        feedItem.title, info.release_date, overview));
                 })
             }, (err, results) => {
                 callback(err, results);
@@ -146,7 +145,7 @@ router.get('/profile/:targetUsername/watched', (req, res) => {
         async.concat(watchedMovies, (movie, callback) => {
             tmdb.movieInfo(movie.get('title'), (err, movieInfo) => {
                 const item = new TitleItem(movieInfo.original_title,
-                    movieInfo.poster_path, movie.title, movieInfo.release_date);
+                    movieInfo.poster_path, movie.title, movieInfo.release_date, movieInfo.overview);
                 callback(err, item);
             });
         }, (err, results) => {
@@ -180,7 +179,7 @@ router.get('/profile/:targetUsername/watchlist', isAuthenticated, (req, res) => 
                     if (err) { return callback (err); }
 
                     var item = new TitleItem(info.original_title,
-                        info.poster_path, info.title, info.release_date);
+                        info.poster_path, info.title, info.release_date, info.overview);
 
                     callback(null, item);
                 })
@@ -246,8 +245,24 @@ router.get('/profile/followers', isAuthenticated, (req, res) => {
 
 // MARK: Movie information retrieval routes
 router.get('/title/:targetID', isAuthenticated, (req, res) => {
-    tmdb.movieInfo(req.params.targetID, (err, results) => {
-        res.json(createResponse(err, results));
+    async.parallel({
+        movieInfo: (callback) => {
+            tmdb.movieInfo(req.params.targetID, (err, results) => {
+                callback(err, results);
+            })
+        },
+        cast: (callback) => {
+            tmdb.movieCredits(req.params.targetID, (err, results) => {
+                callback(err, results);
+            })
+        },
+        trailer: (callback) => {
+            tmdb.movieTrailer(req.params.targetID, (err, results) => {
+                callback(err, results);
+            })
+        }
+    }, (err, results) => {
+        if (err) { res.json(createResponse(err)); }
     });
 });
 
