@@ -184,8 +184,9 @@ class User {
 		this.userDB.findOne({ where: { username: username } })
 		.then((user) => {
 			if (!user) {
-				callback('no user with username "' + username + '"');
+				return callback('no user with username "' + username + '"');
 			}
+			
 			async.parallel({
 				following: (callback) => {
 					this.followDB.count({ where: { username: user.username }})
