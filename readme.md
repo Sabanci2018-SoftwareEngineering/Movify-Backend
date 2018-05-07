@@ -5,7 +5,7 @@
 curl --request POST \
 	--url http://localhost:3000/login \
 	--header 'Content-Type: application/x-www-form-urlencoded' \
-	--data 'key=appleseed.john%40icloud.com&password=password' \
+	--data 'key=user1&password=password' \
 	--cookie-jar /tmp/cookie
 ```
 
