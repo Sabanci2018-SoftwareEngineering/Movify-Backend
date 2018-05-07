@@ -119,21 +119,17 @@ router.get('/feed/:offset', isAuthenticated, (req, res) => {
             });
         },
         (feed, callback) => {
-            async.each(feed, (feedItem, callback) => {
-
+            async.concat(feed, (feedItem, callback) => {
                 tmdb.movieInfo(feedItem.title, (err, info) => {
                     if (err) { return callback (err); }
-                    
-                    feedItem.original_title = info.original_title,
-                    feedItem.poster_path = info.backdrop_path
-                    feedItem.titleID = feedItem.title;
-                    feedItem.releaseDate = info.release_date,
-                    feedItem.overview = info.overview,
-                    delete feedItem.title;
-                    callback();
+
+                    callback(null, new TitleItem(info.original_title, info.backdrop_path, 
+                        feedItem.title, info.release_date, {
+                            overview: info.overview
+                        }));
                 })
-            }, (err) => {
-                callback(err, feed);
+            }, (err, results) => {
+                callback(err, results);
             });
         }
     ], (err, results) => {
