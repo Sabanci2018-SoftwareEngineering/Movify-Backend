@@ -1,6 +1,7 @@
 var bcrypt = require('bcrypt');
 var assert = require('chai').assert;
 var expect = require('chai').expect;
+var async = require('async');
 
 var UserModel = require('../app/models/DB/user.js');
 var FollowModel = require('../app/models/DB/user_follow.js');
@@ -19,6 +20,31 @@ const mockUser = 'appleseed.john';
 const mockEmail = 'johnappleseed@icloud.com'
 const mockPw = 'password';
 
+// MARK: Utilities
+function createUser(username, email, pwHash, callback) {
+    UserModel.build({ username: username, email: email, password: pwHash }).save()
+    .then((user) => {
+        return callback();
+    })
+    .catch(err => callback(err));
+}
+
+async function teardownDatabase() {
+    var models = [FollowModel, ForgotModel, RecommendModel, WatchModel, WatchlistModel, ActivationModel, UserModel];
+    return new Promise((resolve, reject) => {
+        async.each(models, (model, callback) => {
+            model.destroy({ where: { }, truncate: true })
+            .then((destroyedRows) => {
+                resolve();
+            })
+            .catch(err => reject(err));
+        }, (err) => {
+            reject(err);
+        });
+    });
+}
+
+// MARK: Test suite
 describe('Authentication and password logic tests', (done) => {
 
     it('Register a new user with username "appleseed.john" and password "password"', (done) => {
@@ -84,7 +110,7 @@ describe('Authentication and password logic tests', (done) => {
     })
 })
 
-describe('Add, remove and fetch user watchlist items', (done) => {
+describe('Watchlist title tests', (done) => {
     it('Insert title having id 27205 (Inception) to the watchlist', (done) => {
         // previous test case has inserted a user with username appleseed.john, use that
         User.addToWatchlist(mockUser, 27205, (err) => {
@@ -152,8 +178,7 @@ describe('Add, remove and fetch user watchlist items', (done) => {
     });
 })
 
-
-describe('Add, remove and fetch user watched items', (done) => {
+describe('Watched title tests', (done) => {
     it('Insert title haivng id 27205 to the watched movies', (done) => {
         User.addWatchedMovie('appleseed.john', 27205, null, (err) => {
             WatchModel.count({ where: { username: 'appleseed.john', title: '27205' }})
@@ -189,5 +214,97 @@ describe('Add, remove and fetch user watched items', (done) => {
                 done();
             }
         })
-    })
+    });
+
+    after((done) => {
+        // teardown the database
+        teardownDatabase()
+        .then(() => done())
+        .catch(err => {console.error('ERROR', err); done(err)});
+    });
 });
+
+describe('User follow tests', (done) => {
+    beforeEach(((done) => {
+        // create three users
+        async.series([
+            (callback) => {
+                createUser('user1', 'user1@domain.com', 'user1password', err => callback(err));
+            },
+            (callback) => {
+                createUser('user2', 'user2@domain.com', 'user2password', err => callback(err));
+            },
+            (callback) => {
+                createUser('user3', 'user3@domain.com', 'user3password', err => callback(err));
+            }
+        ], (err, result) => {
+            done(err);
+        });
+    }));
+
+    afterEach((done) => {
+        teardownDatabase()
+        .then(() => done())
+        .catch(err => done(err));
+    });
+
+
+    it('user1 follows user2', (done) => {
+        User.followUser('user1', 'user2', (err) => {
+            if (err) { return done(err); }
+
+            FollowModel.count({ where: { username: 'user1', follows: 'user2' }})
+            .then((count) => {
+                assert(count == 1, 'FollowModel should have exactly 1 entry where user1-[FOLLOWS]->user2!');
+            });
+            done();
+        });
+    });
+
+    it('user1 unfollows user2', (done) => {
+        // set up follows
+        async.series([
+            (callback) => {
+                FollowModel.build({ username: 'user1', follows: 'user2' }).save()
+                .then(() => callback())
+                .catch(err => callback(err));
+            },
+            (callback) => {
+                User.unfollowUser('user1', 'user2', err => callback(err));
+            },
+            (callback) => {
+                FollowModel.count({ where: {username: 'user1', follows: 'user2' }})
+                .then((count) => {
+                    assert(count == 0, 'FollowModel should not have a record where user1-[FOLLOWS]->user2');
+                    callback();
+                })
+                .catch(err => callback(err));
+            }
+        ], err => done(err));
+    });
+
+    it('user1 retrieves their followers', (done) => {
+        // make user2 and user3 follow user1
+        async.series([
+            (callback) => {
+                FollowModel.build({ username: 'user2', follows: 'user1' }).save()
+                .then(() => callback())
+                .catch(err => callback(err));
+            },
+            (callback) => {
+                FollowModel.build({ username: 'user3', follows: 'user1' }).save()
+                .then(() => callback())
+                .catch(err => callback(err));
+            },
+            (callback) => {
+                User.getFollowers('user1', (err, followers) => {
+                    assert(followers.length == 2, 'there must be exactly 2 followers of user1');
+                    assert(typeof(followers.find(follower => follower.username == 'user2')) != 'undefined', 'user 2 should be following user1');
+                    assert(typeof(followers.find(follower => follower.username == 'user3')) != 'undefined', 'user 3 should be following user1');
+                    assert(typeof(followers.find(follower => follower.username == 'user4')) == 'undefined', 'non-existent follow relationship should not be existent in followers');
+                    callback();
+                });
+            }
+        ], err => done(err));
+    });
+})
