@@ -213,44 +213,44 @@ class User {
 			return callback('self follow is not permitted!');
 		}
 
-		this.db.transaction(transaction => {
-			return this.followDB.build({ username: username, follows: follows }, 
-				{ transaction: transaction}).save()
-			.then(followEntry => {
-				return User.increment('followingCount', { 
+		this.db.transaction(t => {
+			return this.followDB.create({ 
+				username: username,
+				follows: follows
+			}, { transaction: t }).then(() => {
+				return this.userDB.increment('followingCount', {
 					where: { username: username },
-					transaction: transaction
-				})
-				.then((() => {
-					return User.increment('followerCount', { 
+					transaction: t
+				}).then(() => {
+					return this.userDB.increment('followerCount', {
 						where: { username: follows },
-						transaction: transaction
+						transaction: t
 					});
-				}))
-				.catch(err => callback(err));
-			})
-			.catch(err => callback(err));
+				});
+			});
 		})
-		.then(() => {
-			callback();
-		})
-		.catch(err => {
-			callback(err);
-		});
+		.then(() => callback())
+		.catch(err => callback(err));
 	}
 
 	unfollowUser(username, unfollows, callback) {
-		this.followDB.findOne({ where: { username: username, follows: unfollows } })
-		.then((follow) => {
-			if (follow) {
-				follow.destroy()
-				.then(() => {
-					callback(null);
-				})
-			} else {
-				callback("not even follows!");
-			}
+		this.db.transaction(t => {
+			return this.followDB.destroy({
+				where: { username: username, follows: unfollows },
+				transaction: t
+			}).then(() => {
+				return this.userDB.decrement('followingCount', {
+					where: { username: username },
+					transaction: t
+				}).then(() => {
+					return this.userDB.decrement('followerCount', {
+						where: { username: unfollows},
+						transaction: t
+					});
+				});
+			});
 		})
+		.then(() => callback())
 		.catch(err => callback(err));
 	}
 
