@@ -14,13 +14,16 @@ var rng = require('random-number').generator({
 
 class User {
 	constructor(userModel, activationModel, followModel, forgotModel,
-		watchlistModel, watchedModel) {
+		watchlistModel, watchedModel, userItem, db) {
 		this.userDB = userModel;
 		this.activationDB = activationModel;
 		this.followDB = followModel;
 		this.forgotDB = forgotModel;
 		this.watchlistDB = watchlistModel;
 		this.watchedDB = watchedModel;
+		this.userItem = userItem;
+		this.imageURL = 'https:\/\/movify.monus.me/pics/';
+		this.db = db;
 	}
 	
 	// MARK: Authentication methods
@@ -43,7 +46,7 @@ class User {
 				});
 			}
 		})
-		.catch((err) => { req.authRes = { err: err, res: null }; callback(err); });
+		.catch(err => callback(err));
 	}
 	
 	registerUser (username, email, password, callback) {
@@ -209,25 +212,31 @@ class User {
 		if (username == follows) {
 			return callback('self follow is not permitted!');
 		}
-		this.userDB.findOne({ where: { username: follows } })
-		.then((user) => {
-			if (user) {
-				this.followDB.findOne({ where: { username: username, follows: follows}})
-				.then((followEntry) => {
-					if (followEntry) {
-						return callback('already following');
-					}
-					this.followDB.build({ username: username, follows: follows }).save()
-					.then((follow) => {
-						if (follow) callback(null, "success");
-					}).catch(err => callback(err));
+
+		this.db.transaction(transaction => {
+			return this.followDB.build({ username: username, follows: follows }, 
+				{ transaction: transaction}).save()
+			.then(followEntry => {
+				return User.increment('followingCount', { 
+					where: { username: username },
+					transaction: transaction
 				})
+				.then((() => {
+					return User.increment('followerCount', { 
+						where: { username: follows },
+						transaction: transaction
+					});
+				}))
 				.catch(err => callback(err));
-			} else {
-				callback("no such user!");
-			}
+			})
+			.catch(err => callback(err));
 		})
-		.catch(err => callback(err));
+		.then(() => {
+			callback();
+		})
+		.catch(err => {
+			callback(err);
+		});
 	}
 
 	unfollowUser(username, unfollows, callback) {
@@ -268,26 +277,8 @@ class User {
 			if (!user) {
 				return callback('no user with username "' + username + '"');
 			}
-			
-			async.parallel({
-				following: (callback) => {
-					this.followDB.count({ where: { username: user.username }})
-					.then(count => callback(null, count))
-					.catch(err => callback(err));
-				},
-				followers: (callback) => {
-					this.followDB.count({ where: { follows: user.username }})
-					.then(count => callback(null, count))
-					.catch(err => callback(err));
-				}
-			}, (err, results) => {
-				results.username = user.username;
-				results.firstname = user.firstname;
-				results.lastname = user.lastname;
-				results.picture = 'https:\/\/movify.monus.me/pics/'+user.picture;
-				results.bio = user.bio;
-				callback(err, results);
-			})
+			callback(null, new this.userItem(user.username, user.followerCount, 
+				user.followingCount, this.imageURL + user.picture));
 		})
 		.catch((err) => {
 			callback(err);
@@ -303,10 +294,7 @@ class User {
 					if (user) {
 						callback(null, {
 							username: user.username,
-							firstname: user.firstname,
-							lastname: user.lastname,
-							bio: user.bio,
-							picture: 'https:\/\/movify.monus.me/pics/'+user.picture
+							picture: this.imageURL + user.picture
 						});
 					} else {
 						callback('non-existing follower!');
@@ -328,9 +316,6 @@ class User {
 					if (user) {
 						callback(null, {
 							username: user.username,
-							firstname: user.firstname,
-							lastname: user.lastname,
-							bio: user.bio,
 							picture: 'https:\/\/movify.monus.me/pics/'+user.picture
 						});
 					} else {
@@ -448,49 +433,9 @@ class User {
 		.catch(err => callback(err));
 	}
 
-	getProfile(username, callback) {
+	updateProfile(username, picture, password, callback) {
 		this.userDB.findOne({ where: { username: username } })
 		.then((user) => {
-			if (user) {
-				var resJSON = {
-					username: user.username,
-					firstname: user.firstname,
-					lastname: user.lastname,
-					picture: 'https:\/\/movify.monus.me/pics/'+user.picture,
-					bio: user.bio
-				};
-				this.followDB.count({ where: { username: user.username } })
-				.then((count) => {
-					resJSON.follows = count;
-				});
-				this.followDB.count({ where: { follows: user.username } })
-				.then((count) => {
-					resJSON.followers = count; callback(null, resJSON);
-				});
-			} else {
-				const err = 'user ' + req.params.targetUsername + ' not found in /profile/:targetUsername';
-				console.log(err);
-				callback(err);
-			}
-		})
-		.catch((err) => {
-			console.log(err);
-			callback(err);
-		});
-	}
-
-	updateProfile(username, picture, firstname, lastname, bio, password, callback) {
-		this.userDB.findOne({ where: { username: username } })
-		.then((user) => {
-			if (firstname) {
-				user.firstname = firstname;
-			}
-			if (lastname) {
-				user.lastname = lastname;
-			}
-			if (bio) {
-				user.bio = bio;
-			}
 			if (picture == 'delete') {
 				user.picture = null;
 			}
@@ -503,9 +448,6 @@ class User {
 					callback(null, 'successfully updated profile!');
 				} else { //this case is nearly impossible
 					callback("no such user!");
-				}
-				if (bio) {
-					user.bio = bio;
 				}
 				if (picture) {
 					if (picture == 'delete') user.picture = null;
@@ -548,9 +490,9 @@ class User {
 						return callback("no such user!");
 					}
 				})
-				.catch(function (err) { return callback(err); });
+				.catch(err => callback(err));
 			})
-			.catch(function (err) { return callback(err); });
+			.catch(err => callback(err));
 		});
 	}
 

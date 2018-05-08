@@ -1,10 +1,10 @@
 var router = require('express').Router()
-var Sequelize = require('sequelize');
 var passport = require('passport');
 var bcrypt = require('bcrypt');
 var transporter = require('../config/transporter.js');
 const MovieDB = require('moviedb')('52d83a93b06d28b814fd3ab6f12bcc2a');
 var async = require('async');
+var db = require('../config/database');
 
 var UserModel = require('../models/DB/user.js');
 var ActivationModel = require('../models/DB/user_activation.js');
@@ -15,6 +15,7 @@ var WatchedModel = require('../models/DB/user_watch.js');
 
 var TitleItem = require('../models/titleItem');
 var TitleDetail = require('../models/titleDetail');
+var UserItem = require('../models/userItem');
 
 // Generic controllers
 var UserController = require('../controllers/user.js');
@@ -23,7 +24,7 @@ var TMDB = require('../controllers/movie');
 // Instantiate controllers
 var tmdb = new TMDB(MovieDB);
 var User = new UserController(UserModel, ActivationModel, FollowModel, ForgotModel,
-    WatchlistModel, WatchedModel);
+    WatchlistModel, WatchedModel, UserItem, db);
 
 
 function createResponse(err, res) {
@@ -205,13 +206,13 @@ router.delete('/profile/watchlist', isAuthenticated, (req, res) => {
 });
 
 // MARK: Follow routes
-router.post('profile/follow', isAuthenticated, (req, res) => {
+router.post('/follow', isAuthenticated, (req, res) => {
 	User.followUser(req.user.username, req.body.username, (err, results) => {
 		res.json(createResponse(err, results));
 	});
 });
 
-router.post('profile/unfollow', isAuthenticated, (req, res) => {
+router.post('/unfollow', isAuthenticated, (req, res) => {
 	User.unfollowUser(req.user.username, req.body.username, (err, results) => {
 		res.json(createResponse(err, results));
 	});
