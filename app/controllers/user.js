@@ -6,6 +6,8 @@ var bcrypt = require('bcrypt');
 var async = require('async');
 var transporter = require('../config/transporter.js');
 
+var UserItem = require('../models/userItem');
+
 var rng = require('random-number').generator({
 	min: 0,
 	max:  9,
@@ -254,23 +256,6 @@ class User {
 		.catch(err => callback(err));
 	}
 
-	searchProfile(username, callback) {
-		this.userDB.findAll({ where: { username: { $like: '%' + username + '%' } } })
-		.then((users) => {
-			var resJSON = {
-				users: []
-                        };
-			if (users && users.length) {
-				var length = users.length;
-				for (var i = 0; i < length; i++) {
-					resJSON.users.push({ username: users[i].username, picture: 'https:\/\/movify.monus.me/pics/'+users[i].picture });
-				}
-			}
-			callback(null, resJSON);
-		})
-		.catch(err => callback(err));
-	}
-
 	getProfile(username, callback) {
 		this.userDB.findOne({ where: { username: username } })
 		.then((user) => {
@@ -292,10 +277,8 @@ class User {
 				this.userDB.findOne({ where: { username: follow.username } })
 				.then((user) => {
 					if (user) {
-						callback(null, {
-							username: user.username,
-							picture: this.imageURL + user.picture
-						});
+						callback(null, new UserItem(user.username,
+							user.followerCount, user.followingCount, this.imageURL + user.picture));
 					} else {
 						callback('non-existing follower!');
 					}
@@ -314,10 +297,8 @@ class User {
 				this.userDB.findOne({ where: { username: follow.follows } })
 				.then((user) => {
 					if (user) {
-						callback(null, {
-							username: user.username,
-							picture: 'https:\/\/movify.monus.me/pics/'+user.picture
-						});
+						callback(null, new UserItem(user.username,
+							user.followerCount, user.followingCount, this.imageURL + user.picture));
 					} else {
 						callback('non-existing follow!');
 					}
@@ -419,20 +400,16 @@ class User {
 	searchProfile(username, callback) {
 		this.userDB.findAll({ where: { username: { $like: '%' + username + '%' } } })
 		.then((users) => {
-			var resJSON = {
-				users: []
-                        };
-			if (users && users.length) {
-				var length = users.length;
-				for (var i = 0; i < length; i++) {
-					resJSON.users.push({ username: users[i].username, picture: 'https:\/\/movify.monus.me/pics/'+users[i].picture });
-				}
-			}
-			callback(null, resJSON);
+			async.concat(users, (user, callback) => {
+				callback(null, new UserItem(user.username, user.followerCount, 
+					user.followingCount, this.imageURL + user.picture));
+			}, (err, results) => {
+				callback(err, results);
+			});
 		})
 		.catch(err => callback(err));
 	}
-
+	
 	updateProfile(username, picture, password, callback) {
 		this.userDB.findOne({ where: { username: username } })
 		.then((user) => {

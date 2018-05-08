@@ -107,7 +107,7 @@ router.put('/profile', isAuthenticated, (req, res) => {
 	});
 });
 
-router.post('/profile/search', isAuthenticated, (req, res) => {
+router.post('/search/profile', isAuthenticated, (req, res) => {
 	User.searchProfile(req.body.keyword, (err, results) => {
 		res.json(createResponse(err, results));
 	});
@@ -138,9 +138,9 @@ router.get('/feed/:offset', isAuthenticated, (req, res) => {
 })
 
 // MARK: Watchlist and watched routes
-router.get('/profile/:targetUsername/watched', (req, res) => {
+router.get('/profile/:username/watched', (req, res) => {
     
-    User.getWatchedMovies(req.params.targetUsername, (err, watchedMovies) => {
+    User.getWatchedMovies(req.params.username, (err, watchedMovies) => {
         if (err) { return res.json(createResponse(err)); }
 
         async.concat(watchedMovies, (movie, callback) => {
@@ -155,13 +155,13 @@ router.get('/profile/:targetUsername/watched', (req, res) => {
     })
 });
 
-router.post('/profile/watched', isAuthenticated, (req, res) => {
+router.post('/watched/:username', isAuthenticated, (req, res) => {
     User.addWatchedMovie(req.user.username, req.body.titleID, null, (err) => {
         res.json(createResponse(err, "title successfully added"));
     });
 });
 
-router.delete('/profile/watched', isAuthenticated, (req, res) => {
+router.delete('/watched', isAuthenticated, (req, res) => {
     User.removeWatchedMovie(req.user.username, req.body.titleID, (err) => {
         res.json(createResponse(err, 'title successfully removed'));
     })
@@ -193,13 +193,13 @@ router.get('/profile/:targetUsername/watchlist', isAuthenticated, (req, res) => 
     })
 });
 
-router.post('/profile/watchlist', isAuthenticated, (req, res) => {
+router.post('/watchilst', isAuthenticated, (req, res) => {
     User.addToWatchlist(req.user.username, req.body.titleID, (err) => {
         res.json(createResponse(err, { addedToWatchlist: true }));
     });
 });
 
-router.delete('/profile/watchlist', isAuthenticated, (req, res) => {
+router.delete('/watchlist', isAuthenticated, (req, res) => {
     User.removeFromWatchlist(req.user.username, req.body.titleID, (err) => {
         res.json(createResponse(err, { removedFromWatchlist: true }));
     })
@@ -218,8 +218,12 @@ router.post('/unfollow', isAuthenticated, (req, res) => {
 	});
 });
 
-router.get('/profile/follows', isAuthenticated, (req, res) => {
+router.get('/follows', isAuthenticated, (req, res) => {
     res.redirect('/profile/' + req.user.username + '/follows');
+});
+
+router.get('/followers', isAuthenticated, (req, res) => {
+    res.redirect('/profile/' + req.user.username + '/followers');
 });
 
 router.get('/profile/:targetUsername/follows', isAuthenticated, (req, res) => {
@@ -238,10 +242,6 @@ router.get('/profile/:targetUsername', isAuthenticated, (req, res) => {
 	User.getProfile(req.params.targetUsername, (err, results) => {
 		res.json(createResponse(err, results));
 	});
-});
-
-router.get('/profile/followers', isAuthenticated, (req, res) => {
-    res.redirect('/profile/' + req.user.username + '/followers');
 });
 
 // MARK: Movie information retrieval routes
