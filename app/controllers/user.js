@@ -230,7 +230,7 @@ class User {
 			});
 		})
 		.then(() => callback())
-		.catch(err => callback(err));
+		.catch(err => allback(err));
 	}
 
 	unfollowUser(username, unfollows, callback) {

@@ -2,6 +2,7 @@ var bcrypt = require('bcrypt');
 var assert = require('chai').assert;
 var expect = require('chai').expect;
 var async = require('async');
+var sequelize = require('sequelize');
 
 var UserModel = require('../app/models/DB/user.js');
 var FollowModel = require('../app/models/DB/user_follow.js');
@@ -10,11 +11,13 @@ var RecommendModel = require('../app/models/DB/user_recommend.js');
 var WatchModel = require('../app/models/DB/user_watch.js');
 var WatchlistModel = require('../app/models/DB/user_watchlist.js');
 var ActivationModel = require('../app/models/DB/user_activation.js');
+var db = require('../app/config/database');
+var userItem = require('../app/models/userItem');
 
 var UserController = require('../app/controllers/user');
 
 var User = new UserController(UserModel, ActivationModel, FollowModel, ForgotModel, 
-    WatchlistModel, WatchModel);
+    WatchlistModel, WatchModel, userItem, db);
 
 const mockUser = 'appleseed.john';
 const mockEmail = 'johnappleseed@icloud.com'
@@ -253,11 +256,37 @@ describe('User follow tests', (done) => {
         User.followUser('user1', 'user2', (err) => {
             if (err) { return done(err); }
 
-            FollowModel.count({ where: { username: 'user1', follows: 'user2' }})
-            .then((count) => {
-                assert(count == 1, 'FollowModel should have exactly 1 entry where user1-[FOLLOWS]->user2!');
-            });
-            done();
+            async.parallel([
+                (callback) => {
+                    FollowModel.count({ where: { username: 'user1', follows: 'user2' }})
+                    .then((count) => {
+                        assert(count == 1, 'FollowModel should have exactly 1 entry where user1-[FOLLOWS]->user2!');
+                        callback();
+                    })
+                    .catch(err =>  callback(err));
+                },
+                (callback) => {
+                    UserModel.find({ where: { username: 'user1' }})
+                    .then(user => {
+                        assert(user.followerCount == 0, 'user1 should have 0 followers');
+                        assert(user.followingCount == 1, 'user1 should have 1 following');
+                        callback();
+                    })
+                    .catch(err => callback(err));
+                },
+                (callback) => {
+                    UserModel.find({ where: { username: 'user2' }})
+                    .then(user => {
+                        assert(user.followerCount == 1, 'user2 should hav 1 follower');
+                        assert(user.followingCount == 0, 'user2 should have 0 followers');
+                        callback();
+                    })
+                    .catch(err => callback(err));
+                }
+            ], (err) => {
+                done(err);
+            })
+
         });
     });
 
@@ -265,20 +294,39 @@ describe('User follow tests', (done) => {
         // set up follows
         async.series([
             (callback) => {
-                FollowModel.build({ username: 'user1', follows: 'user2' }).save()
-                .then(() => callback())
-                .catch(err => callback(err));
+                FollowModel.create({ username: 'user1', follows: 'user2' })
+                .nodeify(callback);
             },
+            (callback) => {
+                UserModel.increment('followingCount', { where: {username: 'user1' }})
+                .nodeify(callback);
+            },
+            (callback) => {
+                UserModel.increment('followerCount', { where: {username: 'user2' }})
+                .nodeify(callback);
+            },  
             (callback) => {
                 User.unfollowUser('user1', 'user2', err => callback(err));
             },
             (callback) => {
-                FollowModel.count({ where: {username: 'user1', follows: 'user2' }})
-                .then((count) => {
-                    assert(count == 0, 'FollowModel should not have a record where user1-[FOLLOWS]->user2');
-                    callback();
-                })
-                .catch(err => callback(err));
+                async.parallel([
+                    (callback) => {
+                        FollowModel.count({ where: {username: 'user1', follows: 'user2' }})
+                        .then((count) => {
+                            assert(count == 0, 'FollowModel should not have a record where user1-[FOLLOWS]->user2');
+                            callback();
+                        })
+                        .catch(err => callback(err));
+                    },
+                    (callback) => {
+                        UserModel.find({ where: { username: 'user1' }})
+                        .then(user => {
+                            assert(user.followingCount == 0, 'user1 should not be following anybody');
+                            assert(user.followerCount == 0, 'user1 should not have any followers');
+                            callback();
+                        })
+                        .catch(err => callback(err));
+                    }], err => callback(err));
             }
         ], err => done(err));
     });
