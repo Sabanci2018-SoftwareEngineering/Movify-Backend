@@ -125,7 +125,7 @@ router.get('/feed/:offset', isAuthenticated, (req, res) => {
                     if (err) { return callback (err); }
 
                     callback(null, new TitleItem(info.original_title, info.backdrop_path, 
-                        feedItem.title, info.release_date, overview));
+                        feedItem.title, info.release_date, info.overview));
                 })
             }, (err, results) => {
                 callback(err, results);
