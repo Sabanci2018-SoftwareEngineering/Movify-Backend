@@ -44,52 +44,118 @@ describe('Retrieve data for movie with ID 27205 [mock data]', (done) => {
                 'release_date', 'revenue', 'runtime', 'spoken_languages', 'status', 'tagline', 'title',
                 'video', 'vote_average', 'vote_count'];
             for (var i = 0; i < properties.length; i++) {
-                expect(res.results).to.have.property(properties[i]);
+                expect(res).to.have.property(properties[i]);
             }
 
             done();
         });
     });
 });
+
 
 describe('Retrieve credits for movie with ID 27205 [mock data]', (done) => {
     it('Movie credits data should be retrieved with success', (done) => {
         tmdb.movieCredits(27205, (err, res) => {
             expect(err).to.be.null;
             expect(res).to.exist;
-
-            data = res;
         });
 
         done();
     });
 
     it('Cast data should contain proper keys', (done) => {
-        tmdb.movieCredits(27205, (err, res) => {
-            castProperties = ['cast_id', 'character', 'credit_id', 'gender',
-                'id', 'name', 'order', 'profile_path'];
-            for (var i = 0; i < castProperties.length; i++) {
-                for (var j = 0; j < data.results.cast.length; j++) {
-                    expect(data.results.cast[j]).to.have.property(castProperties[i]);
-                }
-            }
+	tmdb.movieCredits(27205, (err, res) => {
+  		const castProperties = ['cast_id', 'character', 'credit_id', 'gender',
+        		'id', 'name', 'order', 'profile_path'];
+        	for (var i = 0; i < castProperties.length; i++) {
+            	    for (var j = 0; j < res.cast.length; j++) {
+                	expect(res.cast[j]).to.have.property(castProperties[i]);
+            	    }
+        	}
+	});
 
-            done();
-        });
+        done();
     });
 
     it('Crew data should contain proper keys', (done) => {
-        tmdb.movieCredits(27205, (err, res) => {
-            crewProperties = ['credit_id', 'department', 'gender', 'id',
-                'job', 'name', 'profile_path'];
+	tmdb.movieCredits(27205, (err, res) => {
+       		const crewProperties = ['credit_id', 'department', 'gender', 'id',
+          		'job', 'name', 'profile_path'];
 
-            for (var i = 0; i < crewProperties.length; i++) {
-                for (var j = 0; j < data.results.crew.length; j++) {
-                    expect(data.results.crew[j]).to.have.property(crewProperties[i]);
-                }
-            }
+        	for (var i = 0; i < crewProperties.length; i++) {
+            	    for (var j = 0; j < res.crew.length; j++) {
+                	expect(res.crew[j]).to.have.property(crewProperties[i]);
+            	    }
+        	}
+	});
 
-            done();
-        });
+        done();
     });
 });
+
+describe('Retrieve details for artist with ID 1 [mock data]', (done) => {
+    it('Artist information data should be retrieved with success', (done) => {
+	tmdb.artistInfo(1, (err, res) => {
+	    expect(err).to.be.null;
+	    expect(res).to.be.exist;
+	});
+
+	done();
+    });
+
+    it('Information data should contain proper keys', (done) => {
+	tmdb.artistInfo(1, (err, res) => {
+		const props = ['id', 'name', 'biography'];
+		for (var i = 0; i < props.length; i++) {
+	    	    expect(res).to.have.property(props[i]);
+		}
+	});
+
+	done();
+    });
+
+    it('Artist movie credits data should be retrieved with success', (done) => {
+	tmdb.artistCredits(1, (err, res) => {
+	    expect(err).to.be.null;
+	    expect(res).to.be.exist;
+	});
+
+	done();
+    });
+
+    it('MovieCredits data should contain proper keys', (done) => {
+	tmdb.artistCredits(1, (err, res) => {
+		const props = ['original_title', 'poster_path', 'id', 'release_date', 'overview'];
+		for (var i = 0; i < props.length; i++) {
+	    	    for (var j = 0; j < res.length; j++) {
+			expect(res[j]).to.have.property(props[i]);
+	    	    }
+		}
+	});
+
+	done();
+    });
+
+    it('Artist imagess data should be retrieved with success', (done) => {
+	tmdb.artistImages(1, (err, res) => {
+	    expect(err).to.be.null;
+	    expect(res).to.be.exist;
+	});
+
+	done();
+    });
+
+    it('Images data should contain proper keys', (done) => {
+	tmdb.artistImages(1, (err, res) => {
+		const props = ['width', 'height', 'file_path'];
+		for (var i = 0; i < props.length; i++) {
+	    	    for (var j = 0; j < res.length; j++) {
+			expect(res[j]).to.have.property(props[i]);
+	    	    }
+		}
+	});
+
+	done();
+    });
+});
+

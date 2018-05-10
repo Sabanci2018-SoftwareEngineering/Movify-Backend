@@ -2,8 +2,18 @@ function _checkTitleKeys(object) {
     const props = ['original_title', 'poster_path', 'id'];
     const objectKeys = Object.keys(object);
     for (var i = 0; i < props.length; i++) {
-        if (!props[i] in objectKeys) {
+        if (!(objectKeys.includes(props[i]))) {
             throw 'Object keys does not conform with the title model';
+        }
+    }
+}
+
+function _checkArtistKeys(object) {
+    const props = ['id', 'name', 'biography'];
+    const objectKeys = Object.keys(object);
+    for (var i = 0; i < props.length; i++) {
+        if (!(objectKeys.includes(props[i]))) {
+            throw 'Object keys does not conform with the artist model';
         }
     }
 }
@@ -25,6 +35,31 @@ class TMDB {
 
             return callback(null, res);
         });
+    }
+    
+    artistInfo(id, callback) {
+	this.tmdb.personInfo({ id: id }, (err, res) => {
+	    if (err) return callback(err);
+	    _checkArtistKeys(res);
+
+	    return callback(null, res);
+	});
+    }
+    
+    artistCredits(id, callback) {
+	this.tmdb.personMovieCredits({ id: id }, (err, res) => {
+	    if (err) return callback(err);
+
+	    return callback(null, res);
+	});
+    }
+    
+    artistImages(id, callback) {
+	this.tmdb.personImages({ id: id }, (err, res) => {
+	    if (err) return callback(err);
+
+	    return callback(null, res);
+	});
     }
     
     movieInfo(id, callback) {

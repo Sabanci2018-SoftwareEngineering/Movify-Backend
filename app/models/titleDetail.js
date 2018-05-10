@@ -7,7 +7,7 @@ class TitleDetail {
 
         for (var i = 0; i < arguments.length; i++) {
             if (typeof(arguments[i]) === 'undefined') {
-                throw 'TitleItem constructor did not receive ' + props[i];
+                throw 'TitleDetail constructor did not receive ' + props[i];
             }
         }
 
