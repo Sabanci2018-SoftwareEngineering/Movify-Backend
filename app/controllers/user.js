@@ -24,7 +24,7 @@ class User {
 		this.watchlistDB = watchlistModel;
 		this.watchedDB = watchedModel;
 		this.userItem = userItem;
-		this.imageURL = 'https:\/\/movify.monus.me/pics/';
+
 		this.db = db;
 	}
 	
@@ -263,7 +263,7 @@ class User {
 				return callback('no user with username "' + username + '"');
 			}
 			callback(null, new this.userItem(user.username, user.followerCount, 
-				user.followingCount, this.imageURL + user.picture));
+				user.followingCount, user.picture));
 		})
 		.catch((err) => {
 			callback(err);
@@ -278,7 +278,7 @@ class User {
 				.then((user) => {
 					if (user) {
 						callback(null, new UserItem(user.username,
-							user.followerCount, user.followingCount, this.imageURL + user.picture));
+							user.followerCount, user.followingCount, user.picture));
 					} else {
 						callback('non-existing follower!');
 					}
@@ -298,7 +298,7 @@ class User {
 				.then((user) => {
 					if (user) {
 						callback(null, new UserItem(user.username,
-							user.followerCount, user.followingCount, this.imageURL + user.picture));
+							user.followerCount, user.followingCount, user.picture));
 					} else {
 						callback('non-existing follow!');
 					}
@@ -402,7 +402,7 @@ class User {
 		.then((users) => {
 			async.concat(users, (user, callback) => {
 				callback(null, new UserItem(user.username, user.followerCount, 
-					user.followingCount, this.imageURL + user.picture));
+					user.followingCount, user.picture));
 			}, (err, results) => {
 				callback(err, results);
 			});
@@ -410,66 +410,75 @@ class User {
 		.catch(err => callback(err));
 	}
 	
-	updateProfile(username, picture, password, callback) {
+	updateProfile(username, picture, password, email, callback) {
 		this.userDB.findOne({ where: { username: username } })
 		.then((user) => {
-			if (picture == 'delete') {
-				user.picture = null;
-			}
-			if (password) {
-				user.password = password;
-			}
-			user.save()
-			.then((user) => {
-				if (user) {
-					callback(null, 'successfully updated profile!');
-				} else { //this case is nearly impossible
-					callback("no such user!");
-				}
-				if (picture) {
-					if (picture == 'delete') user.picture = null;
+			async.parallel([
+				(callback) => { // password
+					if (password) {
+						bcrypt.hash(password, 12, (err, pwHash) => {
+							if (err) { return callback(err); }
+							user.password = pwHash;
+							callback();
+						});
+					}
 					else {
-						if (Buffer.from(picture, 'base64').toString('base64') === picture) {
-							var rawPicture = Buffer.from(picture, 'base64').toString('ascii'); console.log('rawPicture: ' + rawPicture);
-							var image_number = '';
-							for (var i = 0; i < 10; i += 1) image_number += '' + rng();
-							fs.stat('%s/public/pics/%s.jpg'%(appDir,image_number), function(err, stats) { console.log(err);
-								if (err == null) {
-									while (fs.existsSync('%s/public/pics/%s.jpg'%(appDir,image_number))) {
-										image_number = '';
-										for (var i = 0; i < 10; i += 1) image_number += '' + rng();
-									}
-								} else { console.error(err); }
-								fs.writeFile('%s/public/pics/%s.jpg'%(appDir,image_number), rawPicture, (err) => { console.log(err);
-									if (err) {
-										console.error(err);
-										return callback(err);
-									} else {
-										console.error("written %s image"%('%s/public/pics/%s.jpg'%(appDir,image_number)));
-										user.picture = image_number;
-									}
-								}); console.log("end of fs.stat");
-							}); console.log("after fs.stat");
-						} else {
-							return callback("use base64 encoding for picture!");
+						callback();
+					}
+				},
+				(callback) => { // picture
+					if (picture) {
+						if (picture == 'delete') user.picture = null;
+						else {
+							if (Buffer.from(picture, 'base64').toString('base64') === picture) {
+								var rawPicture = Buffer.from(picture, 'base64').toString('ascii'); console.log('rawPicture: ' + rawPicture);
+								var image_number = '';
+								for (var i = 0; i < 10; i += 1) image_number += '' + rng();
+								fs.stat('%s/public/pics/%s.jpg'%(appDir,image_number), function(err, stats) { console.log(err);
+									if (err == null) {
+										while (fs.existsSync('%s/public/pics/%s.jpg'%(appDir,image_number))) {
+											image_number = '';
+											for (var i = 0; i < 10; i += 1) image_number += '' + rng();
+										}
+									} else { console.error(err); }
+									fs.writeFile('%s/public/pics/%s.jpg'%(appDir,image_number), rawPicture, (err) => { console.log(err);
+										if (err) {
+											console.error(err);
+											return callback(err);
+										} else {
+											console.error("written %s image"%('%s/public/pics/%s.jpg'%(appDir,image_number)));
+											user.picture = image_number;
+										}
+									}); console.log("end of fs.stat");
+								}); console.log("after fs.stat");
+							} else {
+								return callback("use base64 encoding for picture!");
+							}
 						}
 					}
-				}
-				if (password) {
-					user.password = password;
-				}
-				
-				user.save()
-				.then((user) => {
-					if (user) {
-						return callback(null, 'successfully updated profile!');
-					} else { //this case is nearly impossible
-						return callback("no such user!");
+					else {
+						callback();
 					}
-				})
+				},
+				(callback) => { // username
+					if (username) {
+						user.username = username;
+					}
+					callback();
+				},
+				(callback) => { // email
+					if (email) {
+						user.email = email;
+					}
+					callback();
+				}
+			], (err) => {
+				if (err) { return callback(err); }
+
+				user.save()
+				.then(user => callback(null, user))
 				.catch(err => callback(err));
-			})
-			.catch(err => callback(err));
+			});
 		});
 	}
 

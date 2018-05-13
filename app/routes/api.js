@@ -102,7 +102,7 @@ router.get('/profile', isAuthenticated, (req, res) => {
 });
 
 router.put('/profile', isAuthenticated, (req, res) => {
-	User.updateProfile(req.user.username, req.body.picture, req.body.firstname, req.body.lastname, req.body.bio, req.body.password, (err, results) => {
+	User.updateProfile(req.user.username, req.body.picture, req.body.password, req.body.email, (err, results) => {
 		res.json(createResponse(err, results));
 	});
 });
@@ -126,7 +126,7 @@ router.get('/feed/:offset', isAuthenticated, (req, res) => {
                     if (err) { return callback (err); }
 
                     callback(null, new TitleItem(info.original_title, info.backdrop_path, 
-                        feedItem.title, info.release_date, overview));
+                        feedItem.title, info.release_date, info.overview));
                 })
             }, (err, results) => {
                 callback(err, results);
@@ -193,7 +193,7 @@ router.get('/profile/:targetUsername/watchlist', isAuthenticated, (req, res) => 
     })
 });
 
-router.post('/watchilst', isAuthenticated, (req, res) => {
+router.post('/watchlist', isAuthenticated, (req, res) => {
     User.addToWatchlist(req.user.username, req.body.titleID, (err) => {
         res.json(createResponse(err, { addedToWatchlist: true }));
     });
