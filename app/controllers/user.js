@@ -375,11 +375,26 @@ class User {
 	}
 
 	addWatchedMovie(username, titleID, reason, callback) {
-		this.watchedDB.build({ username: username, title: titleID, reason: (reason ? reason : 'other') }).save()
-		.then((watched) => {
-			return callback(null);
-		})
-		.catch(err => callback(err));
+		async.series([
+			(callback) => { // check if item is watched
+				this.watchedDB.findOne({ where: { username: username, title: titleID }})
+				.then(watchedMovie => {
+					if (watchedMovie) {
+						return callback('item already watched');
+					}
+					callback();
+				})
+				.catch(err => callback(err));
+			},
+			(callback) => {
+				this.watchedDB.build({ username: username, title: titleID, reason: (reason ? reason : 'other') }).save()
+				.then((watched) => {
+					return callback(null);
+				})
+				.catch(err => callback(err));		
+			}
+		])
+
 	}
 
 	removeWatchedMovie(username, titleID, callback) {

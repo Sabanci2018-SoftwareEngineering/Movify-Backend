@@ -155,7 +155,7 @@ router.get('/profile/:username/watched', (req, res) => {
     })
 });
 
-router.post('/watched/:username', isAuthenticated, (req, res) => {
+router.post('/watched', isAuthenticated, (req, res) => {
     User.addWatchedMovie(req.user.username, req.body.titleID, null, (err) => {
         res.json(createResponse(err, "title successfully added"));
     });
@@ -272,7 +272,7 @@ router.get('/title/:targetID', isAuthenticated, (req, res) => {
     });
 });
 
-router.post('/title/search', isAuthenticated, (req, res) => {
+router.post('/search/title', isAuthenticated, (req, res) => {
     tmdb.searchMovie(req.body.keyword, (err, results) => {
         res.json(createResponse(err, results))
     });
