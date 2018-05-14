@@ -1,10 +1,10 @@
 var router = require('express').Router()
-var Sequelize = require('sequelize');
 var passport = require('passport');
 var bcrypt = require('bcrypt');
 var transporter = require('../config/transporter.js');
 const MovieDB = require('moviedb')('52d83a93b06d28b814fd3ab6f12bcc2a');
 var async = require('async');
+var db = require('../config/database');
 
 var UserModel = require('../models/DB/user.js');
 var ActivationModel = require('../models/DB/user_activation.js');
@@ -15,6 +15,7 @@ var WatchedModel = require('../models/DB/user_watch.js');
 
 var TitleItem = require('../models/titleItem');
 var TitleDetail = require('../models/titleDetail');
+var UserItem = require('../models/userItem');
 
 // Generic controllers
 var UserController = require('../controllers/user.js');
@@ -23,7 +24,7 @@ var TMDB = require('../controllers/movie');
 // Instantiate controllers
 var tmdb = new TMDB(MovieDB);
 var User = new UserController(UserModel, ActivationModel, FollowModel, ForgotModel,
-    WatchlistModel, WatchedModel);
+    WatchlistModel, WatchedModel, UserItem, db);
 
 
 function createResponse(err, res) {
@@ -101,12 +102,12 @@ router.get('/profile', isAuthenticated, (req, res) => {
 });
 
 router.put('/profile', isAuthenticated, (req, res) => {
-	User.updateProfile(req.user.username, req.body.picture, req.body.firstname, req.body.lastname, req.body.bio, req.body.password, (err, results) => {
+	User.updateProfile(req.user.username, req.body.picture, req.body.password, req.body.email, (err, results) => {
 		res.json(createResponse(err, results));
 	});
 });
 
-router.post('/profile/search', isAuthenticated, (req, res) => {
+router.post('/search/profile', isAuthenticated, (req, res) => {
 	User.searchProfile(req.body.keyword, (err, results) => {
 		res.json(createResponse(err, results));
 	});
@@ -137,9 +138,9 @@ router.get('/feed/:offset', isAuthenticated, (req, res) => {
 })
 
 // MARK: Watchlist and watched routes
-router.get('/profile/:targetUsername/watched', (req, res) => {
+router.get('/profile/:username/watched', (req, res) => {
     
-    User.getWatchedMovies(req.params.targetUsername, (err, watchedMovies) => {
+    User.getWatchedMovies(req.params.username, (err, watchedMovies) => {
         if (err) { return res.json(createResponse(err)); }
 
         async.concat(watchedMovies, (movie, callback) => {
@@ -154,13 +155,13 @@ router.get('/profile/:targetUsername/watched', (req, res) => {
     })
 });
 
-router.post('/profile/watched', isAuthenticated, (req, res) => {
+router.post('/watched/:username', isAuthenticated, (req, res) => {
     User.addWatchedMovie(req.user.username, req.body.titleID, null, (err) => {
         res.json(createResponse(err, "title successfully added"));
     });
 });
 
-router.delete('/profile/watched', isAuthenticated, (req, res) => {
+router.delete('/watched', isAuthenticated, (req, res) => {
     User.removeWatchedMovie(req.user.username, req.body.titleID, (err) => {
         res.json(createResponse(err, 'title successfully removed'));
     })
@@ -192,33 +193,37 @@ router.get('/profile/:targetUsername/watchlist', isAuthenticated, (req, res) => 
     })
 });
 
-router.post('/profile/watchlist', isAuthenticated, (req, res) => {
+router.post('/watchlist', isAuthenticated, (req, res) => {
     User.addToWatchlist(req.user.username, req.body.titleID, (err) => {
         res.json(createResponse(err, { addedToWatchlist: true }));
     });
 });
 
-router.delete('/profile/watchlist', isAuthenticated, (req, res) => {
+router.delete('/watchlist', isAuthenticated, (req, res) => {
     User.removeFromWatchlist(req.user.username, req.body.titleID, (err) => {
         res.json(createResponse(err, { removedFromWatchlist: true }));
     })
 });
 
 // MARK: Follow routes
-router.post('profile/follow', isAuthenticated, (req, res) => {
+router.post('/follow', isAuthenticated, (req, res) => {
 	User.followUser(req.user.username, req.body.username, (err, results) => {
 		res.json(createResponse(err, results));
 	});
 });
 
-router.post('profile/unfollow', isAuthenticated, (req, res) => {
+router.post('/unfollow', isAuthenticated, (req, res) => {
 	User.unfollowUser(req.user.username, req.body.username, (err, results) => {
 		res.json(createResponse(err, results));
 	});
 });
 
-router.get('/profile/follows', isAuthenticated, (req, res) => {
+router.get('/follows', isAuthenticated, (req, res) => {
     res.redirect('/profile/' + req.user.username + '/follows');
+});
+
+router.get('/followers', isAuthenticated, (req, res) => {
+    res.redirect('/profile/' + req.user.username + '/followers');
 });
 
 router.get('/profile/:targetUsername/follows', isAuthenticated, (req, res) => {
@@ -237,10 +242,6 @@ router.get('/profile/:targetUsername', isAuthenticated, (req, res) => {
 	User.getProfile(req.params.targetUsername, (err, results) => {
 		res.json(createResponse(err, results));
 	});
-});
-
-router.get('/profile/followers', isAuthenticated, (req, res) => {
-    res.redirect('/profile/' + req.user.username + '/followers');
 });
 
 // MARK: Movie information retrieval routes

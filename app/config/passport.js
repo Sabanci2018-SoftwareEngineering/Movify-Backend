@@ -7,9 +7,10 @@ var RecommendModel = require('../models/DB/user_recommend.js');
 var WatchModel = require('../models/DB/user_watch.js');
 var WatchlistModel = require('../models/DB/user_watchlist.js');
 var ActivationModel = require('../models/DB/user_activation.js');
+var UserItem = require('../models/userItem');
 
 var UserController = require('../controllers/user.js');
-var User = new UserController(UserModel, ActivationModel, FollowModel, ForgotModel, WatchlistModel);
+var User = new UserController(UserModel, ActivationModel, FollowModel, ForgotModel, WatchlistModel, WatchModel, UserItem);
 
 module.exports = (passport) => {
 	passport.serializeUser((user, done) => {

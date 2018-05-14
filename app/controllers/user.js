@@ -6,6 +6,8 @@ var bcrypt = require('bcrypt');
 var async = require('async');
 var transporter = require('../config/transporter.js');
 
+var UserItem = require('../models/userItem');
+
 var rng = require('random-number').generator({
 	min: 0,
 	max:  9,
@@ -14,13 +16,16 @@ var rng = require('random-number').generator({
 
 class User {
 	constructor(userModel, activationModel, followModel, forgotModel,
-		watchlistModel, watchedModel) {
+		watchlistModel, watchedModel, userItem, db) {
 		this.userDB = userModel;
 		this.activationDB = activationModel;
 		this.followDB = followModel;
 		this.forgotDB = forgotModel;
 		this.watchlistDB = watchlistModel;
 		this.watchedDB = watchedModel;
+		this.userItem = userItem;
+
+		this.db = db;
 	}
 	
 	// MARK: Authentication methods
@@ -43,7 +48,7 @@ class User {
 				});
 			}
 		})
-		.catch((err) => { req.authRes = { err: err, res: null }; callback(err); });
+		.catch(err => callback(err));
 	}
 	
 	registerUser (username, email, password, callback) {
@@ -209,56 +214,45 @@ class User {
 		if (username == follows) {
 			return callback('self follow is not permitted!');
 		}
-		this.userDB.findOne({ where: { username: follows } })
-		.then((user) => {
-			if (user) {
-				this.followDB.findOne({ where: { username: username, follows: follows}})
-				.then((followEntry) => {
-					if (followEntry) {
-						return callback('already following');
-					}
-					this.followDB.build({ username: username, follows: follows }).save()
-					.then((follow) => {
-						if (follow) callback(null, "success");
-					}).catch(err => callback(err));
-				})
-				.catch(err => callback(err));
-			} else {
-				callback("no such user!");
-			}
+
+		this.db.transaction(t => {
+			return this.followDB.create({ 
+				username: username,
+				follows: follows
+			}, { transaction: t }).then(() => {
+				return this.userDB.increment('followingCount', {
+					where: { username: username },
+					transaction: t
+				}).then(() => {
+					return this.userDB.increment('followerCount', {
+						where: { username: follows },
+						transaction: t
+					});
+				});
+			});
 		})
-		.catch(err => callback(err));
+		.then(() => callback())
+		.catch(err => allback(err));
 	}
 
 	unfollowUser(username, unfollows, callback) {
-		this.followDB.findOne({ where: { username: username, follows: unfollows } })
-		.then((follow) => {
-			if (follow) {
-				follow.destroy()
-				.then(() => {
-					callback(null);
-				})
-			} else {
-				callback("not even follows!");
-			}
+		this.db.transaction(t => {
+			return this.followDB.destroy({
+				where: { username: username, follows: unfollows },
+				transaction: t
+			}).then(() => {
+				return this.userDB.decrement('followingCount', {
+					where: { username: username },
+					transaction: t
+				}).then(() => {
+					return this.userDB.decrement('followerCount', {
+						where: { username: unfollows},
+						transaction: t
+					});
+				});
+			});
 		})
-		.catch(err => callback(err));
-	}
-
-	searchProfile(username, callback) {
-		this.userDB.findAll({ where: { username: { $like: '%' + username + '%' } } })
-		.then((users) => {
-			var resJSON = {
-				users: []
-                        };
-			if (users && users.length) {
-				var length = users.length;
-				for (var i = 0; i < length; i++) {
-					resJSON.users.push({ username: users[i].username, picture: 'https:\/\/movify.monus.me/pics/'+users[i].picture });
-				}
-			}
-			callback(null, resJSON);
-		})
+		.then(() => callback())
 		.catch(err => callback(err));
 	}
 
@@ -268,26 +262,8 @@ class User {
 			if (!user) {
 				return callback('no user with username "' + username + '"');
 			}
-			
-			async.parallel({
-				following: (callback) => {
-					this.followDB.count({ where: { username: user.username }})
-					.then(count => callback(null, count))
-					.catch(err => callback(err));
-				},
-				followers: (callback) => {
-					this.followDB.count({ where: { follows: user.username }})
-					.then(count => callback(null, count))
-					.catch(err => callback(err));
-				}
-			}, (err, results) => {
-				results.username = user.username;
-				results.firstname = user.firstname;
-				results.lastname = user.lastname;
-				results.picture = 'https:\/\/movify.monus.me/pics/'+user.picture;
-				results.bio = user.bio;
-				callback(err, results);
-			})
+			callback(null, new this.userItem(user.username, user.followerCount, 
+				user.followingCount, user.picture));
 		})
 		.catch((err) => {
 			callback(err);
@@ -301,13 +277,8 @@ class User {
 				this.userDB.findOne({ where: { username: follow.username } })
 				.then((user) => {
 					if (user) {
-						callback(null, {
-							username: user.username,
-							firstname: user.firstname,
-							lastname: user.lastname,
-							bio: user.bio,
-							picture: 'https:\/\/movify.monus.me/pics/'+user.picture
-						});
+						callback(null, new UserItem(user.username,
+							user.followerCount, user.followingCount, user.picture));
 					} else {
 						callback('non-existing follower!');
 					}
@@ -326,13 +297,8 @@ class User {
 				this.userDB.findOne({ where: { username: follow.follows } })
 				.then((user) => {
 					if (user) {
-						callback(null, {
-							username: user.username,
-							firstname: user.firstname,
-							lastname: user.lastname,
-							bio: user.bio,
-							picture: 'https:\/\/movify.monus.me/pics/'+user.picture
-						});
+						callback(null, new UserItem(user.username,
+							user.followerCount, user.followingCount, user.picture));
 					} else {
 						callback('non-existing follow!');
 					}
@@ -434,123 +400,85 @@ class User {
 	searchProfile(username, callback) {
 		this.userDB.findAll({ where: { username: { $like: '%' + username + '%' } } })
 		.then((users) => {
-			var resJSON = {
-				users: []
-                        };
-			if (users && users.length) {
-				var length = users.length;
-				for (var i = 0; i < length; i++) {
-					resJSON.users.push({ username: users[i].username, picture: 'https:\/\/movify.monus.me/pics/'+users[i].picture });
-				}
-			}
-			callback(null, resJSON);
+			async.concat(users, (user, callback) => {
+				callback(null, new UserItem(user.username, user.followerCount, 
+					user.followingCount, user.picture));
+			}, (err, results) => {
+				callback(err, results);
+			});
 		})
 		.catch(err => callback(err));
 	}
-
-	getProfile(username, callback) {
+	
+	updateProfile(username, picture, password, email, callback) {
 		this.userDB.findOne({ where: { username: username } })
 		.then((user) => {
-			if (user) {
-				var resJSON = {
-					username: user.username,
-					firstname: user.firstname,
-					lastname: user.lastname,
-					picture: 'https:\/\/movify.monus.me/pics/'+user.picture,
-					bio: user.bio
-				};
-				this.followDB.count({ where: { username: user.username } })
-				.then((count) => {
-					resJSON.follows = count;
-				});
-				this.followDB.count({ where: { follows: user.username } })
-				.then((count) => {
-					resJSON.followers = count; callback(null, resJSON);
-				});
-			} else {
-				const err = 'user ' + req.params.targetUsername + ' not found in /profile/:targetUsername';
-				console.log(err);
-				callback(err);
-			}
-		})
-		.catch((err) => {
-			console.log(err);
-			callback(err);
-		});
-	}
-
-	updateProfile(username, picture, firstname, lastname, bio, password, callback) {
-		this.userDB.findOne({ where: { username: username } })
-		.then((user) => {
-			if (firstname) {
-				user.firstname = firstname;
-			}
-			if (lastname) {
-				user.lastname = lastname;
-			}
-			if (bio) {
-				user.bio = bio;
-			}
-			if (picture == 'delete') {
-				user.picture = null;
-			}
-			if (password) {
-				user.password = password;
-			}
-			user.save()
-			.then((user) => {
-				if (user) {
-					callback(null, 'successfully updated profile!');
-				} else { //this case is nearly impossible
-					callback("no such user!");
-				}
-				if (bio) {
-					user.bio = bio;
-				}
-				if (picture) {
-					if (picture == 'delete') user.picture = null;
+			async.parallel([
+				(callback) => { // password
+					if (password) {
+						bcrypt.hash(password, 12, (err, pwHash) => {
+							if (err) { return callback(err); }
+							user.password = pwHash;
+							callback();
+						});
+					}
 					else {
-						if (Buffer.from(picture, 'base64').toString('base64') === picture) {
-							var rawPicture = Buffer.from(picture, 'base64').toString('ascii'); console.log('rawPicture: ' + rawPicture);
-							var image_number = '';
-							for (var i = 0; i < 10; i += 1) image_number += '' + rng();
-							fs.stat('%s/public/pics/%s.jpg'%(appDir,image_number), function(err, stats) { console.log(err);
-								if (err == null) {
-									while (fs.existsSync('%s/public/pics/%s.jpg'%(appDir,image_number))) {
-										image_number = '';
-										for (var i = 0; i < 10; i += 1) image_number += '' + rng();
-									}
-								} else { console.error(err); }
-								fs.writeFile('%s/public/pics/%s.jpg'%(appDir,image_number), rawPicture, (err) => { console.log(err);
-									if (err) {
-										console.error(err);
-										return callback(err);
-									} else {
-										console.error("written %s image"%('%s/public/pics/%s.jpg'%(appDir,image_number)));
-										user.picture = image_number;
-									}
-								}); console.log("end of fs.stat");
-							}); console.log("after fs.stat");
-						} else {
-							return callback("use base64 encoding for picture!");
+						callback();
+					}
+				},
+				(callback) => { // picture
+					if (picture) {
+						if (picture == 'delete') user.picture = null;
+						else {
+							if (Buffer.from(picture, 'base64').toString('base64') === picture) {
+								var rawPicture = Buffer.from(picture, 'base64').toString('ascii'); console.log('rawPicture: ' + rawPicture);
+								var image_number = '';
+								for (var i = 0; i < 10; i += 1) image_number += '' + rng();
+								fs.stat('%s/public/pics/%s.jpg'%(appDir,image_number), function(err, stats) { console.log(err);
+									if (err == null) {
+										while (fs.existsSync('%s/public/pics/%s.jpg'%(appDir,image_number))) {
+											image_number = '';
+											for (var i = 0; i < 10; i += 1) image_number += '' + rng();
+										}
+									} else { console.error(err); }
+									fs.writeFile('%s/public/pics/%s.jpg'%(appDir,image_number), rawPicture, (err) => { console.log(err);
+										if (err) {
+											console.error(err);
+											return callback(err);
+										} else {
+											console.error("written %s image"%('%s/public/pics/%s.jpg'%(appDir,image_number)));
+											user.picture = image_number;
+										}
+									}); console.log("end of fs.stat");
+								}); console.log("after fs.stat");
+							} else {
+								return callback("use base64 encoding for picture!");
+							}
 						}
 					}
-				}
-				if (password) {
-					user.password = password;
-				}
-				
-				user.save()
-				.then((user) => {
-					if (user) {
-						return callback(null, 'successfully updated profile!');
-					} else { //this case is nearly impossible
-						return callback("no such user!");
+					else {
+						callback();
 					}
-				})
-				.catch(function (err) { return callback(err); });
-			})
-			.catch(function (err) { return callback(err); });
+				},
+				(callback) => { // username
+					if (username) {
+						user.username = username;
+					}
+					callback();
+				},
+				(callback) => { // email
+					if (email) {
+						user.email = email;
+					}
+					callback();
+				}
+			], (err) => {
+				if (err) { return callback(err); }
+
+				user.save()
+				.then(user => callback(null, user))
+				.catch(err => callback(err));
+			});
 		});
 	}
 

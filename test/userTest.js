@@ -2,6 +2,7 @@ var bcrypt = require('bcrypt');
 var assert = require('chai').assert;
 var expect = require('chai').expect;
 var async = require('async');
+var sequelize = require('sequelize');
 
 var UserModel = require('../app/models/DB/user.js');
 var FollowModel = require('../app/models/DB/user_follow.js');
@@ -10,11 +11,13 @@ var RecommendModel = require('../app/models/DB/user_recommend.js');
 var WatchModel = require('../app/models/DB/user_watch.js');
 var WatchlistModel = require('../app/models/DB/user_watchlist.js');
 var ActivationModel = require('../app/models/DB/user_activation.js');
+var db = require('../app/config/database');
+var userItem = require('../app/models/userItem');
 
 var UserController = require('../app/controllers/user');
 
 var User = new UserController(UserModel, ActivationModel, FollowModel, ForgotModel, 
-    WatchlistModel, WatchModel);
+    WatchlistModel, WatchModel, userItem, db);
 
 const mockUser = 'appleseed.john';
 const mockEmail = 'johnappleseed@icloud.com'
@@ -227,7 +230,7 @@ describe('Watched title tests', (done) => {
 describe('User follow tests', (done) => {
     beforeEach(((done) => {
         // create three users
-        async.series([
+        async.parallel([
             (callback) => {
                 createUser('user1', 'user1@domain.com', 'user1password', err => callback(err));
             },
@@ -249,41 +252,86 @@ describe('User follow tests', (done) => {
     });
 
 
-    it('user1 follows user2', (done) => {
+    it('user1 follows user2, expect proper database entries', (done) => {
         User.followUser('user1', 'user2', (err) => {
             if (err) { return done(err); }
 
-            FollowModel.count({ where: { username: 'user1', follows: 'user2' }})
-            .then((count) => {
-                assert(count == 1, 'FollowModel should have exactly 1 entry where user1-[FOLLOWS]->user2!');
-            });
-            done();
+            async.parallel([
+                (callback) => {
+                    FollowModel.count({ where: { username: 'user1', follows: 'user2' }})
+                    .then((count) => {
+                        assert(count == 1, 'FollowModel should have exactly 1 entry where user1-[FOLLOWS]->user2!');
+                        callback();
+                    })
+                    .catch(err =>  callback(err));
+                },
+                (callback) => {
+                    UserModel.find({ where: { username: 'user1' }})
+                    .then(user => {
+                        assert(user.followerCount == 0, 'user1 should have 0 followers');
+                        assert(user.followingCount == 1, 'user1 should have 1 following');
+                        callback();
+                    })
+                    .catch(err => callback(err));
+                },
+                (callback) => {
+                    UserModel.find({ where: { username: 'user2' }})
+                    .then(user => {
+                        assert(user.followerCount == 1, 'user2 should hav 1 follower');
+                        assert(user.followingCount == 0, 'user2 should have 0 followers');
+                        callback();
+                    })
+                    .catch(err => callback(err));
+                }
+            ], (err) => {
+                done(err);
+            })
+
         });
     });
 
-    it('user1 unfollows user2', (done) => {
+    it('user1 unfollows user2, expect proper database entries', (done) => {
         // set up follows
         async.series([
             (callback) => {
-                FollowModel.build({ username: 'user1', follows: 'user2' }).save()
-                .then(() => callback())
-                .catch(err => callback(err));
+                FollowModel.create({ username: 'user1', follows: 'user2' })
+                .nodeify(callback);
             },
+            (callback) => {
+                UserModel.increment('followingCount', { where: {username: 'user1' }})
+                .nodeify(callback);
+            },
+            (callback) => {
+                UserModel.increment('followerCount', { where: {username: 'user2' }})
+                .nodeify(callback);
+            },  
             (callback) => {
                 User.unfollowUser('user1', 'user2', err => callback(err));
             },
             (callback) => {
-                FollowModel.count({ where: {username: 'user1', follows: 'user2' }})
-                .then((count) => {
-                    assert(count == 0, 'FollowModel should not have a record where user1-[FOLLOWS]->user2');
-                    callback();
-                })
-                .catch(err => callback(err));
+                async.parallel([
+                    (callback) => {
+                        FollowModel.count({ where: {username: 'user1', follows: 'user2' }})
+                        .then((count) => {
+                            assert(count == 0, 'FollowModel should not have a record where user1-[FOLLOWS]->user2');
+                            callback();
+                        })
+                        .catch(err => callback(err));
+                    },
+                    (callback) => {
+                        UserModel.find({ where: { username: 'user1' }})
+                        .then(user => {
+                            assert(user.followingCount == 0, 'user1 should not be following anybody');
+                            assert(user.followerCount == 0, 'user1 should not have any followers');
+                            callback();
+                        })
+                        .catch(err => callback(err));
+                    }], err => callback(err));
             }
         ], err => done(err));
     });
 
-    it('user1 retrieves their followers', (done) => {
+    it('user1 retrieves their followers, where user2 and user3 follows user1', (done) => {
         // make user2 and user3 follow user1
         async.series([
             (callback) => {
@@ -307,4 +355,62 @@ describe('User follow tests', (done) => {
             }
         ], err => done(err));
     });
+})
+
+describe('User info retrieval tests', (done) => {
+    beforeEach(((done) => {
+        // create three users
+        async.parallel([
+            (callback) => {
+                createUser('user1', 'user1@domain.com', 'user1password', err => callback(err));
+            },
+            (callback) => {
+                createUser('user2', 'user2@domain.com', 'user2password', err => callback(err));
+            },
+            (callback) => {
+                createUser('user3', 'user3@domain.com', 'user3password', err => callback(err));
+            }
+        ], (err, result) => {
+            done(err);
+        });
+    }));
+
+    afterEach((done) => {
+        teardownDatabase()
+        .then(() => done())
+        .catch(err => done(err));
+    });
+
+    it('Search for users with keyword "user", expect 3 results and proper keys', (done) => {
+        User.searchProfile('user', (err, results) => {
+            if (err) {
+                return done(err);
+            }
+
+            userProps = ['username', 'follower_count', 'follow_count', 'picture'];
+            
+            assert(results.length == 3, 'expected three results to return from search');
+            for (var i = 0; i < results.length; i++) {
+                for (var j = 0; j < userProps.length; j++) {
+                    expect(results[i]).to.have.property(userProps[j]);
+                }
+            }
+            done();
+        })
+    });
+
+    it('Retrieve profile information on user "user2", expect proper keys', (done) => {
+        User.getProfile('user2', (err, user) => {
+            if (err) {
+                return done(err);
+            }
+
+            userProps = ['username', 'follower_count', 'follow_count', 'picture'];
+
+            for (var i = 0; i < userProps.length; i++) {
+                expect(user).to.have.property(userProps[i]);
+            }
+            done();
+        })
+    })
 })

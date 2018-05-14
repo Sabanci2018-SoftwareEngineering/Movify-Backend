@@ -20,23 +20,20 @@ var User = db.define('user', {
 		allowNull: false,
 		defaultValue: '0000000001'
 	},
-	firstname: {
-		type: Sequelize.STRING,
-		allowNull: true
-	},
-	lastname: {
-		type: Sequelize.STRING,
-		allowNull: true
-	},
-	bio: {
-		type: Sequelize.STRING,
-		allowNull: false,
-		defaultValue: 'mysterious..'
-	},
 	isActive: {
 		type: Sequelize.BOOLEAN,
 		allowNull: false,
 		defaultValue: false
+	},
+	followerCount: {
+		type: Sequelize.INTEGER,
+		allowNull: false,
+		defaultValue: 0
+	},
+	followingCount: {
+		type: Sequelize.INTEGER,
+		allowNull: false,
+		defaultValue: 0
 	}
 },
 {
