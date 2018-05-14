@@ -151,10 +151,12 @@ describe('Watchlist title tests', (done) => {
             WatchlistModel.findAll({ where: { username: mockUser }})
             .then((watchlist) => {
                 assert(watchlist.length == 2, 'length of watchlist mismatches 2');
-                assert(watchlist[0].username == 'appleseed.john', 'watchlist item username mismatches');
+                for (var i = 0; i < watchlist.length; i++) {
+                    assert(watchlist[i].username == 'appleseed.john', 'watchlist item username mismatches');
+                }
+                
                 assert(watchlist[0].title == '27205', 'watchlist title mismatches 27205');
                 assert(watchlist[1].title == '27206', 'watchlist title mismatches 27206');
-                assert(watchlist[1].username == 'appleseed.john', 'watchlist item username mismatches');
             })
             .catch(err => done(err));
 
@@ -250,7 +252,6 @@ describe('User follow tests', (done) => {
         .then(() => done())
         .catch(err => done(err));
     });
-
 
     it('user1 follows user2, expect proper database entries', (done) => {
         User.followUser('user1', 'user2', (err) => {
@@ -391,9 +392,7 @@ describe('User info retrieval tests', (done) => {
             
             assert(results.length == 3, 'expected three results to return from search');
             for (var i = 0; i < results.length; i++) {
-                for (var j = 0; j < userProps.length; j++) {
-                    expect(results[i]).to.have.property(userProps[j]);
-                }
+                expect(results[i]).to.have.all.keys(userProps);
             }
             done();
         })
@@ -406,10 +405,7 @@ describe('User info retrieval tests', (done) => {
             }
 
             userProps = ['username', 'follower_count', 'follow_count', 'picture'];
-
-            for (var i = 0; i < userProps.length; i++) {
-                expect(user).to.have.property(userProps[i]);
-            }
+            expect(user).to.have.all.keys(userProps);
             done();
         })
     })

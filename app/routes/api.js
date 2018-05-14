@@ -169,18 +169,17 @@ router.delete('/watched', isAuthenticated, (req, res) => {
 
 router.get('/profile/:targetUsername/watchlist', isAuthenticated, (req, res) => {
     async.waterfall([
-        (callback) => {
+        (callback) => { // watchlist of id's
             User.getWatchlist(req.params.targetUsername, (err, watchlist) => {
                 callback(err, watchlist);
             });
         },
-        (watchlist, callback) => {
+        (watchlist, callback) => { // populate watchlist fields WRT TitleItem
             async.concat(watchlist, (watchlistItem, callback) => {
                 tmdb.movieInfo(watchlistItem.dataValues.title, (err, info) => {
                     if (err) { return callback (err); }
-
                     var item = new TitleItem(info.original_title,
-                        info.poster_path, info.title, info.release_date, info.overview);
+                        info.poster_path, info.id, info.release_date, info.overview);
 
                     callback(null, item);
                 })
