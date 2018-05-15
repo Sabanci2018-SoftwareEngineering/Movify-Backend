@@ -16,12 +16,21 @@ var UserWatch = db.define('user_watch', {
         allowNull: false,
         primaryKey: true
     },
+    rate: {
+	type: Sequelize.ENUM,
+	values: ['like', 'dislike'],
+	allowNull: true,
+    },
+    comment: {
+	type: Sequelize.STRING,
+	allowNull: true
+    },
     reason: {
         type: Sequelize.ENUM,
         values: ['feed', 'recommendation', 'other'],
         allowNull: false
     }
-}, 
+},
 {
     freezeTableName: true,
     indexes: [
