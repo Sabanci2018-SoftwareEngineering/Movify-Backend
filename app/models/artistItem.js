@@ -6,7 +6,7 @@ class ArtistItem {
         var props = ['id', 'name', 'biography', 'images', 'movies'];
         for (var i = 0; i < arguments.length; i++) {
             if (typeof(arguments[i]) === 'undefined') {
-                throw 'ArtistItem constructor did not receive ' + props[i];
+                console.error('ArtistItem constructor did not receive ' + props[i]);
             }
         }
 

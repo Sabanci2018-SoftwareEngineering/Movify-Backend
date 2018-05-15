@@ -4,7 +4,7 @@ class TitleItem {
         var props = ['original_title', 'poster_path', 'id', 'release_date', 'overview'];
         for (var i = 0; i < arguments.length; i++) {
             if (typeof(arguments[i]) === 'undefined') {
-                throw 'TitleItem constructor did not receive ' + props[i];
+                console.error('TitleItem constructor did not receive ' + props[i]);
             }
         }
 
