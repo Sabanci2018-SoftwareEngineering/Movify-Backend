@@ -417,13 +417,17 @@ class User {
 	}
 
 	updateWatchedMovie(username, titleID, rate, comment, reason, callback) {
-		this.watchedDB.findOne({ username: username, title: titleID })
+		this.watchedDB.findOne({ where: { username: username, title: titleID }})
 			.then((watchedMovie) => {
+				if (watchedMovie == null) return callback('title is not watched!');
+
 				if (rate != watchedMovie.rate) watchedMovie.rate = rate;
 				if (comment != watchedMovie.comment) watchedMovie.comment = comment;
-				if (reason != watchedMovie.reason) watchedMovie.reason = reason;
+				if ((reason ? reason : 'other') != watchedMovie.reason) watchedMovie.reason = reason;
 
 				watchedMovie.save();
+
+				return callback(null);
 			})
 			.catch(err => callback(err));
 	}
