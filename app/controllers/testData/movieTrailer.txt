@@ -1,1 +1,1 @@
-{"success":true,"results":[{"name":"Trailer 3","size":"HD","source":"xitHF0IPJSQ","type":"Trailer"},{"name":"Trailer 1","size":"HD","source":"Jvurpf91omw","type":"Trailer"}]}
+[{"name":"Trailer 3","size":"HD","source":"xitHF0IPJSQ","type":"Trailer"},{"name":"Trailer 1","size":"HD","source":"Jvurpf91omw","type":"Trailer"}]

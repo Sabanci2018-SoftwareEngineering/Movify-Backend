@@ -18,6 +18,18 @@ class mockMovieDB {
         this._processFile('searchMovie.txt', callback);
     }
 
+    personInfo(id, callback) {
+	this._processFile('artistInfo.txt', callback);
+    }
+
+    personMovieCredits(id, callback) {
+	this._processFile('artistCredits.txt', callback);
+    }
+
+    personImages(id, callback) {
+	this._processFile('artistImages.txt', callback);
+    }
+
     movieInfo(id, callback) {
         this._processFile('movieInfo.txt', callback);
     }
