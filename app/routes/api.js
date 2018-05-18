@@ -157,8 +157,14 @@ router.get('/profile/:username/watched', (req, res) => {
 });
 
 router.post('/watched/:username', isAuthenticated, (req, res) => {
-    User.addWatchedMovie(req.user.username, req.body.titleID, null, (err) => {
+    User.addWatchedMovie(req.user.username, req.body.titleID, req.body.rate, req.body.comment, null, (err) => {
         res.json(createResponse(err, "title successfully added"));
+    });
+});
+
+router.put('/profile/watched', isAuthenticated, (req, res) => {
+    User.updateWatchedMovie(req.user.username, req.body.titleID, req.body.rate, req.body.comment, null, (err) => {
+	res.json(createResponse(err, "title succesfully edited"));
     });
 });
 

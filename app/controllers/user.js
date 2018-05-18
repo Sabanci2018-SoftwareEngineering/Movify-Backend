@@ -374,12 +374,28 @@ class User {
 		});
 	}
 
-	addWatchedMovie(username, titleID, reason, callback) {
-		this.watchedDB.build({ username: username, title: titleID, reason: (reason ? reason : 'other') }).save()
+	addWatchedMovie(username, titleID, rate, comment, reason, callback) {
+		this.watchedDB.build({ username: username, title: titleID, rate: rate, comment: comment, reason: (reason ? reason : 'other') }).save()
 		.then((watched) => {
 			return callback(null);
 		})
 		.catch(err => callback(err));
+	}
+
+	updateWatchedMovie(username, titleID, rate, comment, reason, callback) {
+		this.watchedDB.findOne({ where: { username: username, title: titleID }})
+			.then((watchedMovie) => {
+				if (watchedMovie == null) return callback('title is not watched!');
+
+				if (rate != watchedMovie.rate) watchedMovie.rate = rate;
+				if (comment != watchedMovie.comment) watchedMovie.comment = comment;
+				if ((reason ? reason : 'other') != watchedMovie.reason) watchedMovie.reason = reason;
+
+				watchedMovie.save();
+
+				return callback(null);
+			})
+			.catch(err => callback(err));
 	}
 
 	removeWatchedMovie(username, titleID, callback) {

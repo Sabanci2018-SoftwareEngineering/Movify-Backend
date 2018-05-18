@@ -183,7 +183,7 @@ describe('Watchlist title tests', (done) => {
 
 describe('Watched title tests', (done) => {
     it('Insert title haivng id 27205 to the watched movies', (done) => {
-        User.addWatchedMovie('appleseed.john', 27205, null, (err) => {
+        User.addWatchedMovie('appleseed.john', 27205, 'like', 'awesome!', null, (err) => {
             WatchModel.count({ where: { username: 'appleseed.john', title: '27205' }})
             .then((count) => {
                 assert(count == 1, 'Number of watched titles with id 27205 is not 1 after insertion!');
@@ -194,7 +194,7 @@ describe('Watched title tests', (done) => {
     });
 
     it('Insert title having id 27206 to the watched movies', (done) => {
-        User.addWatchedMovie('appleseed.john', 27206, null, (err) => {
+        User.addWatchedMovie('appleseed.john', 27206, 'dislike', 'not awesome!', null, (err) => {
             WatchModel.count({ where: { username: 'appleseed.john', title: '27206' }})
             .then((count) => {
                 assert(count == 1, 'Number of watched titles with id 27206 is not 1 after insertion!');
@@ -204,11 +204,22 @@ describe('Watched title tests', (done) => {
         });
     });
 
+    it('Update title having id 27206 to liked', (done) => {
+	User.updateWatchedMovie('appleseed.john', 27206, 'like', 'changed my mind', null, (err) => {
+	    WatchModel.count({ where: { username: 'appleseed.john', title: '27206', rate: 'like' }})
+	    .then((count) => {
+		assert(count == 1, 'Title with id 27206 is not changed!');
+		done();
+	    })
+	    .catch(err => done(err));
+	});
+    });
+
     it('Retrieve all watched items for appleed.john', (done) => {
         User.getWatchedMovies(mockUser, (err, movies) => {
             if (err) { done(err); }
             else {
-                props = ['username', 'title', 'reason', 'createdAt', 'updatedAt'];
+                props = ['username', 'title', 'rate', 'comment', 'reason', 'createdAt', 'updatedAt'];
                 for (var i = 0; i < movies.length; i++) {
                     for (var j = 0; j < props.length; j++) {
                         expect(movies[i].dataValues).to.have.property(props[j]);
@@ -388,7 +399,7 @@ describe('User info retrieval tests', (done) => {
             }
 
             userProps = ['username', 'follower_count', 'follow_count', 'picture'];
-            
+
             assert(results.length == 3, 'expected three results to return from search');
             for (var i = 0; i < results.length; i++) {
                 for (var j = 0; j < userProps.length; j++) {
