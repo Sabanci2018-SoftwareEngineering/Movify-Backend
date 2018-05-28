@@ -117,7 +117,7 @@ router.post('/search/profile', isAuthenticated, (req, res) => {
 router.get('/feed/:offset', isAuthenticated, (req, res) => {
     async.waterfall([
         (callback) => {
-            User.getFeed(0, (err, feed) => {
+            User.getFeed(parseInt(req.params.offset), (err, feed) => {
                 callback(err, feed);
             });
         },
@@ -127,7 +127,7 @@ router.get('/feed/:offset', isAuthenticated, (req, res) => {
                     if (err) { return callback (err); }
 
                     callback(null, new TitleItem(info.original_title, info.backdrop_path, 
-                        feedItem.title, info.release_date, info.overview));
+                        feedItem.title, info.release_date, info.overview, { action_date: feedItem.updatedAt }));
                 })
             }, (err, results) => {
                 callback(err, results);

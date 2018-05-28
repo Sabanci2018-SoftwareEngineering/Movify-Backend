@@ -499,48 +499,54 @@ class User {
 	}
 
 	getFeed(offset, callback) {
+		// Utility functions
+		function getData(model, offset, limit, callback) {
+			model.findAll({
+				attributes: ['username', 'title', 'updatedAt'],
+				offset: offset,
+				limit: limit,
+				order: [['updatedAt', 'DESC']]
+			})
+			.then(results => {
+				results = results.map(results => {
+					return Object.assign({}, results.dataValues, {
+						type: 'watched'
+					});
+				});
+				callback(null, results);
+			})
+			.catch(err => callback(err));
+		}
+
+		// Retrieve latest 10 items, skip by offset
+		/* Get 5 items from both models and check their dates,
+		*/
+		let limit = 10;
+
 		async.parallel([
-			(callback) => {
-				this.watchedDB.findAll({
-					attributes: ['username', 'title', 'updatedAt'],
-				})
-				.then((watchedArray) => {
-					watchedArray = watchedArray.map(watchedArray => {
-						return Object.assign({}, watchedArray.dataValues, {
-							type: "watched"
-						});
-					})
-					callback(null, watchedArray);
-				})
-				.catch(err => callback(err));
+			(callback) => { // watched
+				getData(this.watchedDB, Math.floor(offset/2.0), limit, (err, watched) => {
+					callback(err, watched);
+				});
 			},
-			(callback) => {
-				this.watchlistDB.findAll({
-					attributes: ['username', 'title', 'updatedAt'],
-				})
-				.then((watchlistArray) => {
-					watchlistArray = watchlistArray.map(watchlistItem => {
-						return Object.assign({}, watchlistItem.dataValues, {
-							type: "watchlist"
-						});
-					})
-					callback(null, watchlistArray);
-				})
-				.catch(err => callback(err));
+			(callback) => { // watchlist
+				getData(this.watchlistDB, Math.floor(offset/2), limit, (err, watchlist) => {
+					callback(err, watchlist);
+				});
 			}
 		], (err, results) => {
-			results = results[0].concat(results[1]);
-			results.sort((a, b) => {
-				var keyA = new Date(a.updatedAt);
-				var keyB = new Date(b.updatedAt);
-				if (keyA > keyB) { return -1; }
-				else if (keyA < keyB) { return 1; }
-				else { return 0; }
-			})
-			return callback(err, results);
-		})
-
-		
+			if (!err && results) {
+				results = results[0].concat(results[1]);
+				results.sort((a, b) => {
+					var keyA = new Date(a.updatedAt);
+					var keyB = new Date(b.updatedAt);
+					if (keyA > keyB) { return -1; }
+					else if (keyA < keyB) { return 1; }
+					else { return 0; }
+				})
+			}
+			return callback(err, results.splice(0, limit));
+		});
 	}
 }
 
