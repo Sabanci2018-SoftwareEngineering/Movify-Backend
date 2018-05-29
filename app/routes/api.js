@@ -5,6 +5,7 @@ var transporter = require('../config/transporter.js');
 const MovieDB = require('moviedb')('52d83a93b06d28b814fd3ab6f12bcc2a');
 var async = require('async');
 var db = require('../config/database');
+var top250 = require('./top250.js');
 
 var UserModel = require('../models/DB/user.js');
 var ActivationModel = require('../models/DB/user_activation.js');
@@ -42,8 +43,8 @@ function createResponse(err, res) {
 }
 
 var randomTitle = require('random-number').generator({
-	min: 1,
-	max:  20000,
+	min: 0,
+	max:  249,
 	integer: true
 });
 
@@ -218,17 +219,13 @@ router.delete('/watchlist', isAuthenticated, (req, res) => {
 });
 
 router.get('/recommended', isAuthenticated, (req, res) => {
-    var randomMovie = [randomTitle(), randomTitle(), randomTitle()];
-
-    async.concat(randomMovie, (movieId, callback) => {
-        tmdb.movieInfo(movieId, (err, movieInfo) => {
-            const item = new TitleItem(movieInfo.original_title,
-                movieInfo.poster_path, movieId, movieInfo.release_date, movieInfo.overview);
-            callback(err, item);
-        });
-    }, (err, results) => {
-        res.json(createResponse(err, results));
-    });
+    var randomMovie = [top250.items[randomTitle()], top250.items[randomTitle()], top250.items[randomTitle()]];
+    var recommendedMovies = [];
+    for (var i = 0; i < randomMovie.length; i++) {
+        recommendedMovies.push(new TitleItem(randomMovie[i].original_title, randomMovie[i].poster_path, randomMovie[i].id,
+            randomMovie[i].release_date, randomMovie[i].overview));
+    }
+    res.json(createResponse(null, recommendedMovies));
 
     /* async.waterfall([
         (callback) => {
