@@ -41,6 +41,12 @@ function createResponse(err, res) {
     };
 }
 
+var randomTitle = require('random-number').generator({
+	min: 1,
+	max:  20000,
+	integer: true
+});
+
 if (process.env.NODE_ENV != 'TEST') {
     router.use('*', (req, res, next) => {
         console.log('[' + req.method + '] ' + req.ip + ' ' + req.path);
@@ -211,6 +217,37 @@ router.delete('/watchlist', isAuthenticated, (req, res) => {
     })
 });
 
+router.get('/recommended', isAuthenticated, (req, res) => {
+    var randomMovie = [randomTitle(), randomTitle(), randomTitle()];
+
+    async.concat(randomMovie, (movieId, callback) => {
+        tmdb.movieInfo(movieId, (err, movieInfo) => {
+            const item = new TitleItem(movieInfo.original_title,
+                movieInfo.poster_path, movieId, movieInfo.release_date, movieInfo.overview);
+            callback(err, item);
+        });
+    }, (err, results) => {
+        res.json(createResponse(err, results));
+    });
+
+    /* async.waterfall([
+        (callback) => {
+            User.getWatchedMovies(req.user.username, callback);
+        },
+        (watched, callback) => {
+            var i = 0;
+            async.each(watched, (item, callback) => {
+                item = item.dataValues;
+                console.log('item', i++, '\n', item);
+            }, err => {
+                callback();
+            });
+        }
+    ], (err, res) => {
+        res.json(createResopnse(err, res));
+    }); */
+})
+
 // MARK: Follow routes
 router.post('/follow', isAuthenticated, (req, res) => {
 	User.followUser(req.user.username, req.body.username, (err, results) => {
@@ -274,7 +311,8 @@ router.get('/title/:targetID', isAuthenticated, (req, res) => {
             res.json(createResponse(null, new TitleDetail(results.movieInfo.original_title, results.movieInfo.poster_path,
                 results.movieInfo.id, results.movieInfo.release_date, results.movieInfo.overview, results.movieInfo.genres,
                 results.movieInfo.runtime, results.movieInfo.status, results.movieInfo.tagline, results.movieInfo.vote_average,
-                results.movieInfo.vote_count, results.credits.cast, results.credits.crew, results.trailer.youtube)));
+                results.movieInfo.vote_count, results.credits.cast, results.credits.crew, results.trailer.youtube, 
+             { imdb_id: results.movieInfo.imdb_id })));
         }
     });
 });

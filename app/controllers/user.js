@@ -26,6 +26,8 @@ class User {
 		this.userItem = userItem;
 
 		this.db = db;
+
+		this.recommenderTrained = false;
 	}
 	
 	// MARK: Authentication methods
