@@ -2,7 +2,7 @@ var router = require('express').Router()
 var passport = require('passport');
 var bcrypt = require('bcrypt');
 var transporter = require('../config/transporter.js');
-const MovieDB = require('moviedb')('52d83a93b06d28b814fd3ab6f12bcc2a');
+const MovieDB = require('moviedb')('1fe24b6457897c2006951dc44e0d73be');
 var async = require('async');
 var db = require('../config/database');
 
@@ -117,7 +117,8 @@ router.post('/search/profile', isAuthenticated, (req, res) => {
 router.get('/feed/:offset', isAuthenticated, (req, res) => {
     async.waterfall([
         (callback) => {
-            User.getFeed(0, (err, feed) => {
+            User.getFeed(parseInt(req.params.offset), (err, feed) => {
+                console.log('FEED\n', feed)
                 callback(err, feed);
             });
         },
@@ -127,7 +128,7 @@ router.get('/feed/:offset', isAuthenticated, (req, res) => {
                     if (err) { return callback (err); }
 
                     callback(null, new TitleItem(info.original_title, info.backdrop_path, 
-                        feedItem.title, info.release_date, info.overview));
+                        feedItem.title, info.release_date, info.overview, { action_date: feedItem.updatedAt }));
                 })
             }, (err, results) => {
                 callback(err, results);
