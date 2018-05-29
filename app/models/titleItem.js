@@ -14,9 +14,11 @@ class TitleItem {
         }
 
         // set additional keys
-        let additionalFields = Object.keys(argsObject);
-        for (var i = 0; i < additionalFields.length; i++) {
-            this[additionalFields[i]] = argsObject[additionalFields[i]];
+        if (argsObject) {
+            let additionalFields = Object.keys(argsObject);
+            for (var i = 0; i < additionalFields.length; i++) {
+                this[additionalFields[i]] = argsObject[additionalFields[i]];
+            }
         }
     }
 }

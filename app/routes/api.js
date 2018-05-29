@@ -2,7 +2,7 @@ var router = require('express').Router()
 var passport = require('passport');
 var bcrypt = require('bcrypt');
 var transporter = require('../config/transporter.js');
-const MovieDB = require('moviedb')('52d83a93b06d28b814fd3ab6f12bcc2a');
+const MovieDB = require('moviedb')('1fe24b6457897c2006951dc44e0d73be');
 var async = require('async');
 var db = require('../config/database');
 
@@ -118,6 +118,7 @@ router.get('/feed/:offset', isAuthenticated, (req, res) => {
     async.waterfall([
         (callback) => {
             User.getFeed(parseInt(req.params.offset), (err, feed) => {
+                console.log('FEED\n', feed)
                 callback(err, feed);
             });
         },

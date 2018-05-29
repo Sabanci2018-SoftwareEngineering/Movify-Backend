@@ -500,11 +500,9 @@ class User {
 
 	getFeed(offset, callback) {
 		// Utility functions
-		function getData(model, offset, limit, callback) {
+		function getData(model, callback) { // retrieves all items from provided model
 			model.findAll({
 				attributes: ['username', 'title', 'updatedAt'],
-				offset: offset,
-				limit: limit,
 				order: [['updatedAt', 'DESC']]
 			})
 			.then(results => {
@@ -518,19 +516,16 @@ class User {
 			.catch(err => callback(err));
 		}
 
-		// Retrieve latest 10 items, skip by offset
-		/* Get 5 items from both models and check their dates,
-		*/
 		let limit = 10;
 
 		async.parallel([
 			(callback) => { // watched
-				getData(this.watchedDB, Math.floor(offset/2.0), limit, (err, watched) => {
+				getData(this.watchedDB, (err, watched) => {
 					callback(err, watched);
 				});
 			},
 			(callback) => { // watchlist
-				getData(this.watchlistDB, Math.floor(offset/2), limit, (err, watchlist) => {
+				getData(this.watchlistDB, (err, watchlist) => {
 					callback(err, watchlist);
 				});
 			}
@@ -545,7 +540,7 @@ class User {
 					else { return 0; }
 				})
 			}
-			return callback(err, results.splice(0, limit));
+			return callback(err, results.splice(offset, limit));
 		});
 	}
 }
