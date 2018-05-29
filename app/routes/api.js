@@ -5,6 +5,7 @@ var transporter = require('../config/transporter.js');
 const MovieDB = require('moviedb')('1fe24b6457897c2006951dc44e0d73be');
 var async = require('async');
 var db = require('../config/database');
+var top250 = require('./top250.js');
 
 var UserModel = require('../models/DB/user.js');
 var ActivationModel = require('../models/DB/user_activation.js');
@@ -40,6 +41,12 @@ function createResponse(err, res) {
         results: res
     };
 }
+
+var randomTitle = require('random-number').generator({
+	min: 0,
+	max:  249,
+	integer: true
+});
 
 if (process.env.NODE_ENV != 'TEST') {
     router.use('*', (req, res, next) => {
@@ -212,6 +219,33 @@ router.delete('/watchlist', isAuthenticated, (req, res) => {
     })
 });
 
+router.get('/recommended', isAuthenticated, (req, res) => {
+    var randomMovie = [top250.items[randomTitle()], top250.items[randomTitle()], top250.items[randomTitle()]];
+    var recommendedMovies = [];
+    for (var i = 0; i < randomMovie.length; i++) {
+        recommendedMovies.push(new TitleItem(randomMovie[i].original_title, randomMovie[i].poster_path, randomMovie[i].id,
+            randomMovie[i].release_date, randomMovie[i].overview));
+    }
+    res.json(createResponse(null, recommendedMovies));
+
+    /* async.waterfall([
+        (callback) => {
+            User.getWatchedMovies(req.user.username, callback);
+        },
+        (watched, callback) => {
+            var i = 0;
+            async.each(watched, (item, callback) => {
+                item = item.dataValues;
+                console.log('item', i++, '\n', item);
+            }, err => {
+                callback();
+            });
+        }
+    ], (err, res) => {
+        res.json(createResopnse(err, res));
+    }); */
+})
+
 // MARK: Follow routes
 router.post('/follow', isAuthenticated, (req, res) => {
 	User.followUser(req.user.username, req.body.username, (err, results) => {
@@ -275,7 +309,8 @@ router.get('/title/:targetID', isAuthenticated, (req, res) => {
             res.json(createResponse(null, new TitleDetail(results.movieInfo.original_title, results.movieInfo.poster_path,
                 results.movieInfo.id, results.movieInfo.release_date, results.movieInfo.overview, results.movieInfo.genres,
                 results.movieInfo.runtime, results.movieInfo.status, results.movieInfo.tagline, results.movieInfo.vote_average,
-                results.movieInfo.vote_count, results.credits.cast, results.credits.crew, results.trailer.youtube)));
+                results.movieInfo.vote_count, results.credits.cast, results.credits.crew, results.trailer.youtube, 
+             { imdb_id: results.movieInfo.imdb_id })));
         }
     });
 });
